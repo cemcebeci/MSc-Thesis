@@ -15,8 +15,8 @@ These games, modified minimally to introduce bugs the fuzzer can find, form the 
 \subsubsection{Generating fuzzers for OpenSpiel games}
 (TODO: I adapted this from the OpenSpiel paper, should figure out how to cite that.)
 Games in OpenSpiel are described as producedural extensive-form games. Where a game has:
-\begin{description}
-    \item { finite set of players. Including a special player representing chance.
+\begin{itemize}
+    \item finite set of players. Including a special player representing chance.
     \item A finite set of all possible actions players can take in all game states.
     \item A finite set of histories. Each history is a sequence of actions that were taken from the start
     of the game.
@@ -25,7 +25,8 @@ Games in OpenSpiel are described as producedural extensive-form games. Where a g
     \item A player assigned to take the next action for each non-terminal history. Including a special player representing simultaneous states, 
         where players act simultaneously choosing a joint action.
     \item A set of states, where each state is a set of histories such that histories in the same state can not be distinguished by the acting player.
-\end{description}
+\end{itemize}
+
 Complete game descriptions are objects that implement some interface methods exposing the elements 
 described above, along with some utility methods to simplify moving from a history to its successors.
 In particular, OpenSpiel game descriptions implement the following methods that are useful for generating a fuzzer:

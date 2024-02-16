@@ -93,7 +93,11 @@ act nim(Int num_sticks) {num_sticks > 0} -> Nim:
     frm remaining_sticks = num_sticks
 
     while remaining_sticks > 0:
-        act pick_up_sticks(Int count) {count > 0 , count <= remaining_sticks}
+        act pick_up_sticks(Int count) {
+            count > 0,
+            count <= 4,
+            count <= remaining_sticks
+        }
         remaining_sticks = remaining_sticks - count
         current_player = 1 - current_player
 

@@ -1,0 +1,187 @@
+As previously stated (TODO: make sure this is stated previously.), our goal is to implement a method of automatically generating
+ efficient fuzzers for actions described in RL.
+In this section, we describe how we accomplish that goal.
+We start by describing a simple method to generate black-box fuzzers that uses almost none of the information available in an RL action description.
+Then, we build on this method incrementally, integrating parts of the available information one by one in order to improve performance.
+
+\section{The form of a fuzzer}
+Within the scope of this thesis, we only consider fuzzers integrated with LLVM's libFuzzer. (TODO: explain why?)
+LibFuzzer interfaces with the fuzzed action through a fuzzing entrypoint called the fuzz target.
+The fuzz target is a function that accepts an array of bytes and does something interesting with these bytes using the API under test (TODO: I took part of this from libFuzzer's page.).
+LibFuzzer invokes this function repeatedly with different fuzz inputs. It tracks which areas of the code are reached, and generates mutations on the corpus of input data in order to maximize the code coverage.
+Utilizing libFuzzer, we narrow our task to generating a fuzz target.
+The fuzz target should use the fuzz input it receives to interact with the interface of the fuzzed action.
+
+For the methods described in this section, we model the fuzz target as a function written in pseudo-code that has access to the fuzz input as well
+ as the public methods of the fuzzed action.
+In reality, the fuzz target needs to be written in C and the action's interface is written in RL. We will describe how the two are connected in a later section.
+
+Throughout this section, we will use the following action description to exemplify the methods we discuss:
+\begin{lstlisting}
+act nim() -> Nim:
+    frm winner : Int
+    frm current_player = 0
+    frm remaining_sticks
+
+    act decide_num_sticks(Int num_sticks) {num_sticks > 0}
+    remaining_sticks = num_sticks
+
+    while remaining_sticks > 0:
+        act pick_up_sticks(Int count) {
+            count > 0,
+            count <= 4,
+            count <= remaining_sticks
+        }
+        remaining_sticks = remaining_sticks - count
+        current_player = 1 - current_player
+
+    winner = current_player
+\end{lstlisting}
+The action is a slightly modified version of the Nim example from the previous section.
+In this version, the initial number of sticks is picked through an action. This change makes the examples more illustrative by introducing more than one action.
+
+\section{Generating black-box fuzz targets}
+As a baseline for our discussion, let us describe a simple method to generate black-box fuzz targets for RL actions.
+A black-box fuzz target knows about the subactions available in the action's interface, and their signatures. (TODO: think about renaming "subaction")
+The simplest black-box fuzz target uses some portion of the fuzz input to decide which subaction to call.
+Then, it generates arguments for each of the picked subaction's parameters.
+Finally, it calls the subaction with the generated arguments.
+This method interprets the fuzz input as an action call, and test whether that action call results in problematic behavior.
+
+A fuzz target for the Nim example would look like the following:
+\begin{algorithm}[H]
+    \caption{Black-box fuzz target for Nim}
+    \begin{algorithmic}[1]
+    \STATE $game \gets nim()$
+    \STATE $actionIndex \gets pickIntegerValue(fuzzInput, 0, 1)$
+    \IF{$actionIndex = 0$}
+        \STATE $arg0 \gets pickValue(fuzzInput, INT\_MIN, INT\_MAX)$
+        \STATE $game.decide\_num\_sticks(arg0)$
+    \ENDIF
+    \IF{$actionIndex = 1$}
+        \STATE $arg0 \gets pickValue(fuzzInput, INT\_MIN, INT\_MAX)$
+        \STATE $game.pick\_up\_sticks(arg0)$
+    \ENDIF
+    \end{algorithmic}
+\end{algorithm}
+Where \texttt{pickIntegerValue(byte[] fuzzInput, int min, int max)} is a function that consumes the first $log_2(max - min + 1)$ bits of \texttt{fuzzInput}
+ to produce an integer between \texttt{min} and \texttt{max}.
+ \texttt{INT\_MIN}, \texttt{INT\_MAX} represent the bounds of an integer value.
+
+\section{Performing a sequence of actions}
+One limitation of this simple black-box fuzzer is that it never executes more than one subaction of the fuzzed action.
+Therefore, it will not be able to discover bugs that occur only after multiple action calls.
+To amend this shortcoming, we can make the fuzz target repeat this process until it consumes every bit of the fuzz input.
+This method interprets the fuzz input as a sequence of action calls, instead of a single action call.
+In this way, the fuzzer will be able to capture the stateful behavior of RL actions.
+
+Applied to the Nim example, this method would produce the following fuzz target.
+\begin{algorithm}[H]
+    \caption{Fuzz target performing multiple actions for Nim}
+    \begin{algorithmic}[1]
+    \STATE $game \gets nim()$
+    \WHILE {fuzz input is long enough}
+        \STATE $actionIndex \gets pickIntegerValue(fuzzInput, 0, 1)$
+        \IF{$actionIndex = 0$}
+            \STATE $arg0 \gets pickValue(fuzzInput, INT\_MIN, INT\_MAX)$
+            \STATE $game.decide\_num\_sticks(arg0)$
+        \ENDIF
+        \IF{$actionIndex = 1$}
+            \STATE $arg0 \gets pickValue(fuzzInput, INT\_MIN, INT\_MAX)$
+            \STATE $game.pick\_up\_sticks(arg0)$
+        \ENDIF
+    \ENDWHILE
+    \end{algorithmic}
+\end{algorithm}
+
+\section{Avoiding expected crashes}
+Another critical shortcoming of this method is that invoking an arbitrary subaction with arbitrary parameters may result in an expected crash.
+For example, calling \texttt{pick\_up\_sticks} before calling \texttt{decide\_num\_sticks} is expected to cause a crash since the action will not have paused on the correct subaction.
+In addition, calling \texttt{decide\_num\_sticks(-1)} will also result in a crash since the precondition of the subaction is violated.
+If a call is expect to cause a crash, we describe the call as illegal.
+
+When we make an illegal call, the program will crash and the fuzzer will report a bug.
+However, we are not interested in these crashes since they are a result of how the fuzz target interacts with the action, not a result of how the action is described.
+To solve this problem, we need some runtime mechanism to decide the legality of a call.
+We assume such a mechanism to be available for now and describe its implementation in a later section. (TODO: link that section here).
+Then, the fuzz target we generate should check the legality of all subaction calls it makes, and avoid making illegal calls.
+When it generates an illegal call, the fuzz target can simply continue to the next iteration of the main loop and generate a new call.
+This methods interprets the fuzz input as a sequence of legal action calls.
+
+For the Nim example, we would obtain the following fuzz target:
+\begin{algorithm}[H]
+    \caption{Fuzz target performing multiple actions for Nim}
+    \begin{algorithmic}[1]
+    \STATE $game \gets nim()$
+    \WHILE {fuzz input is long enough}
+        \STATE $actionIndex \gets pickIntegerValue(fuzzInput, 0, 1)$
+        \IF{$actionIndex = 0$}
+            \STATE $arg0 \gets pickValue(fuzzInput, INT\_MIN, INT\_MAX)$
+            \IF {$game.decide\_num\_sticks(arg0)$ is a legal call}
+                \STATE $game.decide\_num\_sticks(arg0)$
+            \ENDIF
+        \ENDIF
+        \IF{$actionIndex = 1$}
+            \STATE $arg0 \gets pickValue(fuzzInput, INT\_MIN, INT\_MAX)$
+            \IF {$game.pick\_up\_sticks(arg0)$ is a legal call}
+                \STATE $game.pick\_up\_sticks(arg0)$
+            \ENDIF
+        \ENDIF
+    \ENDWHILE
+    \end{algorithmic}
+\end{algorithm}
+
+With these improvements, we have a functionally correct design.
+However, Even if we never make illegal calls, wasting fuzz input bits by generating illegal calls decreases the fuzzer's performance. (TODO: should I argue / demonstrate why?)
+We can reduce the number of illegal calls we generate, and therefore improve the efficiency of the fuzzers by making use of more information available in the action description.
+
+\section{Filtering out unavailable subactions}
+The first observation we make about the legality of subaction calls is that any subaction is always illegal if the action has not paused on that subaction, or an \texttt{ActionsStatement} containing that subaction.
+With this observation, we can dynamically classify subactions as "available" or "unavailable".
+If we can guarantee we never generate a call to an unavailable subaction, we eliminate a large portion of generated illegal calls.
+To achieve that, we need a mechanism to dynamically decide whether a subaction is available.
+Assuming we can implement this mechanism, we can make sure to only pick available subactions. (TODO: link the section here when you write it.)
+
+Here is an example for the Nim game:
+\begin{algorithm}[H]
+    \caption{Fuzz target performing multiple actions for Nim}
+    \begin{algorithmic}[1]
+    \STATE $game \gets nim()$
+    \WHILE {fuzz input is long enough}
+        \STATE $availableSubactions \gets []$
+        \IF {$decide\_num\_sticks$ is available}
+            \STATE $availableSubactions.push(0)$
+        \ENDIF
+        \IF {$pick\_up\_sticks$ is available}
+            \STATE $availableSubactions.push(1)$
+        \ENDIF
+        \STATE $pickedIndex \gets pickIntegerValue(fuzzInput, 0, len(availableSubactions))$
+        \STATE $actionIndex \gets availableSubactions[pickedIndex]$
+        \IF{$actionIndex = 0$}
+            \STATE $arg0 \gets pickValue(fuzzInput, INT\_MIN, INT\_MAX)$
+            \IF {$game.decide\_num\_sticks(arg0)$ is a legal call}
+                \STATE $game.decide\_num\_sticks(arg0)$
+            \ENDIF
+        \ENDIF
+        \IF{$actionIndex = 1$}
+            \STATE $arg0 \gets pickValue(fuzzInput, INT\_MIN, INT\_MAX)$
+            \IF {$game.pick\_up\_sticks(arg0)$ is a legal call}
+                \STATE $game.pick\_up\_sticks(arg0)$
+            \ENDIF
+        \ENDIF
+    \ENDWHILE
+    \end{algorithmic}
+\end{algorithm}
+
+\section{Utilizing preconditions}
+Now that we have made sure we never pick unavailable subactions, the only remaining cause of generated illegal subaction calls is violated preconditions.
+Preconditions in RL can be arbitrarily complex. They can include any kind of expression RL supports, including calls to arbitrary functions.
+Therefore, given a set of conditions, finding a set of arguments that satisfy them is not an easy task. (TODO: Should I detail how hard this is?)
+As a result, we can not guarantee to never pick illegal arguments to a subaction call.
+Nevertheless, we can focus on particular forms of preconditions and extract some information from them to decrease the number of illegal arguments we generate.
+
+As an example, consider the subaction arguments in the Nim action.
+We can replace \texttt{pickValue(fuzzInput, INT\_MIN, INT\_MAX)} at line 13 with \texttt{pickValue(fuzzInput, 1, INT\_MAX)}, since we know all negative choices are going to be discarded.
+Furthermore, when picking the argument of \texttt{pick\_up\_sticks}, we can \texttt{pickValue(fuzzInput, 1, min(4, game.remaining\_sticks))}, so that we guarantee never picking an argument out of bounds.
+
+The details of constraint types we consider in the scope of this thesis are described in a later section. (TODO: link that section here.)
