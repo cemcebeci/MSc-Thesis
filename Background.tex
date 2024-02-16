@@ -1,0 +1,101 @@
+\section{Description of RL}
+RL is an imperative programming language and its structure is similar to other common imperative
+languages such as Python or C. An RL program is composed of functions, and the entry point is a special
+function with signature \texttt{fun main() -> Int}. Each function has a list of statements to be executed sequentially.
+These statements include what one might expect to find in an imperative language, such as 
+variable declarations, assignments, if statements, while loops, and function calls. RL extends this 
+familiar language structure with a couple key features.
+
+\subsection{Actions}
+(TODO: decide on a wording / voice to use for executing statements of a function body.)
+In addition to regular functions, RL features another function-like construct called actions.
+The main difference between a function and an action is in their control flow semantics.
+When a function is called, it runs until it executes a return statement.
+Then, all variables local to the function body are discarded and solely the return value is returned to the caller.
+In contrast, when an action is invoked it runs until it executes a special kind of statement which causes it to suspend.
+Then, it returns an action object that describes the current state of execution, including the values of local variables as well as where the execution has suspended.
+The caller can invoke methods of this returned object to resume the execution from its previous state.
+Action bodies do not contain explicit return statements, actions are meant to model processes, not values.
+
+Two kinds of statements suspend an action's executions: Action statements and actions statements (TODO: the naming is very awkward here.)
+An action statement has the syntax \texttt{act action\_name( param\_type param\_name, ...)}.
+When the action suspends on an action statement, it can be resumed by calling the method of the action object that shares a signature with the action statement.
+The action then resumes execution starting from the statement immediately succeeding the action statement.
+In addition, the action statement's parameters are accessible by successive statements.
+The parameters assume the value of arguments passed to the function that resumed the execution.
+
+An actions statement has the following syntax
+\begin{lstlisting}
+actions:
+    action_statement
+    non_action_statement
+    non_action_statement
+    ...
+
+    action_statement
+    non_action_statement
+    non_action_statement
+    ...
+\end{lstlisting}
+An action suspended on an actions statement can be resumed on any of the action statements contained in it.
+When resumed, only statements until the next action statement are executed before proceeding to the actions statement's successor.
+
+(TODO: Should I mention subaction statements here?)
+
+Not all variables in an action's body are exposed to callers.
+Variables declared with the keyword \texttt{frm} are stored in the action's frame.
+They persist across suspensions and are reachable from outside the action.
+On the other hand, variables declared with the keyword \texttt{let} are temporary values.
+They are discarded when the action's execution suspends, just like local variables in regular functions.
+
+As an example, consider the following program:
+
+\lstinputlisting{action_example.rl}
+
+The main function invokes \texttt{nim(14)}.
+The action initializes the variables \texttt{current\_player} and \texttt{remaining\_sticks}, enters the loop and suspends at line 7.
+When it suspends, the action returns a \texttt{Nim} object, which holds the variables
+ \texttt{current\_player} and \texttt{remaining\_sticks}, exposes the functions \texttt{pick\_up\_sticks(Int count)} and \texttt{is\_done\(\)} 
+ and "remembers" that the action is suspended at the \texttt{pick\_up\_sticks} action statement.
+The main function then stores this object in the variable \texttt{game}, and calls the method it exposes multiple times.
+Each of these calls but the last one execute one iteration of the while loop before suspending on line 7 once again.
+During the last \texttt{pick\_up\_sticks} call at line 18, the action's execution exits the while loop and terminates, since there are no other action statements in the action's body.
+After this point, \texttt{game.is\_done()} returns \texttt{True} and calling \texttt{pick\_up\_sticks} again will result in a crash since the action is not suspended on that statement.
+The action's frame variables are still accessible through the \texttt{Nim} object.
+
+\subsection{Preconditions}
+In RL, every function, action and subaction statement can have a list of preconditions attached to it.
+Any expression that evaluates to a boolean value can be a precondition, and preconditions can use the parameters of the function, action or action statement they are associated with.
+Unless optimizations are turned on while compiling, a function call or action instantiation with arguments that violate its target's preconditions results in a crash.
+
+Being able to express preconditions is crucial for describing simulations.
+For instance, consider the nim example. The action 
+\begin{lstlisting}
+act nim(Int num_sticks) -> Nim:
+    frm winner : Int
+    frm current_player = 0
+    frm remaining_sticks = num_sticks
+
+    while remaining_sticks > 0:
+        act pick_up_sticks(Int count)
+        remaining_sticks = remaining_sticks - count
+        current_player = 1 - current_player
+
+    winner = current_player
+\end{lstlisting}
+allows players to pick up more sticks than there are in the game, or even a negative number of sticks.
+Moreover, the game is not restricted to start with a positive number of sticks in the first place.
+Enhancing the description with preconditions increases the description's readability, eases debugging and boosts the potential of automated analysis methods.
+\begin{lstlisting}
+act nim(Int num_sticks) {num_sticks > 0} -> Nim:
+    frm winner : Int
+    frm current_player = 0
+    frm remaining_sticks = num_sticks
+
+    while remaining_sticks > 0:
+        act pick_up_sticks(Int count) {count > 0 , count <= remaining_sticks}
+        remaining_sticks = remaining_sticks - count
+        current_player = 1 - current_player
+
+    winner = current_player
+\end{lstlisting}
