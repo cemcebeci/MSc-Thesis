@@ -1,15 +1,16 @@
+\section{Conceptual design}
 As previously stated (TODO: make sure this is stated previously.), our goal is to implement a method of automatically generating
  efficient fuzzers for actions described in RL.
 In this section, we describe how we accomplish that goal.
 We start by describing a simple method to generate black-box fuzzers that uses almost none of the information available in an RL action description.
 Then, we build on this method incrementally, integrating parts of the available information one by one in order to improve performance.
 
-\section{The form of a fuzzer}
+\subsection{The form of a fuzzer}
 Within the scope of this thesis, we only consider fuzzers integrated with LLVM's libFuzzer. (TODO: explain why?)
 LibFuzzer interfaces with the fuzzed action through a fuzzing entrypoint called the fuzz target.
 The fuzz target is a function that accepts an array of bytes and does something interesting with these bytes using the API under test (TODO: I took part of this from libFuzzer's page.).
 LibFuzzer invokes this function repeatedly with different fuzz inputs. It tracks which areas of the code are reached, and generates mutations on the corpus of input data in order to maximize the code coverage.
-Utilizing libFuzzer, we narrow our task to generating a fuzz target.
+Utilizing libFuzzer, we narrow the task of generating a fuzzer down to the task to generating a fuzz target.
 The fuzz target should use the fuzz input it receives to interact with the interface of the fuzzed action.
 
 For the methods described in this section, we model the fuzz target as a function written in pseudo-code that has access to the fuzz input as well
@@ -40,13 +41,13 @@ act nim() -> Nim:
 The action is a slightly modified version of the Nim example from the previous section.
 In this version, the initial number of sticks is picked through an action. This change makes the examples more illustrative by introducing more than one action.
 
-\section{Generating black-box fuzz targets}
+\subsection{Generating black-box fuzz targets}
 As a baseline for our discussion, let us describe a simple method to generate black-box fuzz targets for RL actions.
 A black-box fuzz target knows about the subactions available in the action's interface, and their signatures. (TODO: think about renaming "subaction")
 The simplest black-box fuzz target uses some portion of the fuzz input to decide which subaction to call.
 Then, it generates arguments for each of the picked subaction's parameters.
 Finally, it calls the subaction with the generated arguments.
-This method interprets the fuzz input as an action call, and test whether that action call results in problematic behavior.
+This method interprets the fuzz input as an action call, and tests whether that action call results in problematic behavior.
 
 A fuzz target for the Nim example would look like the following:
 \begin{algorithm}[H]
@@ -64,11 +65,11 @@ A fuzz target for the Nim example would look like the following:
     \ENDIF
     \end{algorithmic}
 \end{algorithm}
-Where \texttt{pickIntegerValue(byte[] fuzzInput, int min, int max)} is a function that consumes the first $log_2(max - min + 1)$ bits of \texttt{fuzzInput}
+Where \texttt{pickIntegerValue(byte[] fuzzInput, int min, int max)} is a function that consumes the next $log_2(max - min + 1)$ bits of \texttt{fuzzInput}
  to produce an integer between \texttt{min} and \texttt{max}.
  \texttt{INT\_MIN}, \texttt{INT\_MAX} represent the bounds of an integer value.
 
-\section{Performing a sequence of actions}
+\subsection{Performing a sequence of actions}
 One limitation of this simple black-box fuzzer is that it never executes more than one subaction of the fuzzed action.
 Therefore, it will not be able to discover bugs that occur only after multiple action calls.
 To amend this shortcoming, we can make the fuzz target repeat this process until it consumes every bit of the fuzz input.
@@ -94,7 +95,7 @@ Applied to the Nim example, this method would produce the following fuzz target.
     \end{algorithmic}
 \end{algorithm}
 
-\section{Avoiding expected crashes}
+\subsection{Avoiding expected crashes}\label{avoidingCrashes}
 Another critical shortcoming of this method is that invoking an arbitrary subaction with arbitrary parameters may result in an expected crash.
 For example, calling \texttt{pick\_up\_sticks} before calling \texttt{decide\_num\_sticks} is expected to cause a crash since the action will not have paused on the correct subaction.
 In addition, calling \texttt{decide\_num\_sticks(-1)} will also result in a crash since the precondition of the subaction is violated.
@@ -135,8 +136,8 @@ With these improvements, we have a functionally correct design.
 However, Even if we never make illegal calls, wasting fuzz input bits by generating illegal calls decreases the fuzzer's performance. (TODO: should I argue / demonstrate why?)
 We can reduce the number of illegal calls we generate, and therefore improve the efficiency of the fuzzers by making use of more information available in the action description.
 
-\section{Filtering out unavailable subactions}
-The first observation we make about the legality of subaction calls is that any subaction is always illegal if the action has not paused on that subaction, or an \texttt{ActionsStatement} containing that subaction.
+\subsection{Filtering out unavailable subactions}\label{filteringUnavailableSubactions}
+The first observation we make about the legality of subaction calls is that any subaction is always illegal if the action has not paused on the \texttt{ActionStatement} for that subaction, or an \texttt{ActionsStatement} containing that \texttt{ActionStatement}.
 With this observation, we can dynamically classify subactions as "available" or "unavailable".
 If we can guarantee we never generate a call to an unavailable subaction, we eliminate a large portion of generated illegal calls.
 To achieve that, we need a mechanism to dynamically decide whether a subaction is available.
@@ -173,7 +174,7 @@ Here is an example for the Nim game:
     \end{algorithmic}
 \end{algorithm}
 
-\section{Utilizing preconditions}
+\subsection{Utilizing preconditions}
 Now that we have made sure we never pick unavailable subactions, the only remaining cause of generated illegal subaction calls is violated preconditions.
 Preconditions in RL can be arbitrarily complex. They can include any kind of expression RL supports, including calls to arbitrary functions.
 Therefore, given a set of conditions, finding a set of arguments that satisfy them is not an easy task. (TODO: Should I detail how hard this is?)
@@ -185,3 +186,81 @@ We can replace \texttt{pickValue(fuzzInput, INT\_MIN, INT\_MAX)} at line 13 with
 Furthermore, when picking the argument of \texttt{pick\_up\_sticks}, we can \texttt{pickValue(fuzzInput, 1, min(4, game.remaining\_sticks))}, so that we guarantee never picking an argument out of bounds.
 
 The details of constraint types we consider in the scope of this thesis are described in a later section. (TODO: link that section here.)
+
+\section{Implementation}
+In this section, we explain how we implemented the method described in the previous section.
+We provide an architectural overview, then we detail how we address the challenges we have highlighted.
+
+\subsection{Architectural overview}
+As previously explained, a fuzzer built with libFuzzer needs to expose a fuzz target.
+The fuzz target is a C function that accepts the fuzz input and calls the fuzzed action's functions in some sequence, looking for unexpected behavior.
+The key challenge regarding generating fuzz targets is that they need to have access to both the fuzz input, which is a C byte array; and the action's subaction functions, which are available in RL.
+This requires part of the implementation to be in C or C++, and part of it to be integrated with RLC.
+The generated fuzz target needs to be customized to the number of subactions the action has, their signatures, and their preconditions.
+
+One option is implement the body of the fuzz target in C or C++.
+In this case, we need to express the information related to the fuzzed action as either macros or templates.
+Then, we can extend RLC to emit a C header containing the relevant information.
+Finally, the C++ compiler can perform the necessary macro expansions and template instantiations to arrive at the customized fuzzer.
+We have explored this option extensively and generated fuzzers covering a subset of the features described in the previous section.
+However, we ultimately found it very difficult to read and maintain the fuzz target body written in terms of these macros.
+In addition, designing macro representations for RL concepts to be serializable into a C header without losing descriptive power proved to be challenging.
+Therefore, we ultimately decided against this option.
+
+Instead, we extend RLC to emit a global function implementing the body of the fuzz target when it's passed the \texttt{--fuzzer} flag.
+This global function has a static signature, independent of the characteristics of the action to be fuzzed.
+The fuzz target invoked by libFuzzer simply calls this function and then returns.
+Since RLC knows about all characteristics of the action to be fuzzed at compile time, it can customize this function accordingly, without the need of designing serializable representations for these characteristics.
+
+On the other hand, it's difficult for RLC to emit the functions that interpret sections of the fuzz input as different data types.
+For instance, the \texttt{pickValue(fuzzInput, min, max)} function utilized in the previous section should parse the next $log_2(max - min + 1)$ bits of 
+    the fuzz input as an integer in the range $[min, max]$.
+A proper implementation of this function requires pointer arithmetic and bitwise operators.
+Fortunately, these functions do not depend on the characteristics of the action to be fuzzed.
+Hence, we implement these in C++ and the code emitted by RLC issues calls to them wherever necessary.
+
+Furthermore, we extend RLC with a fuzzer standard library.
+This library contains functions, written in RL, that implement parts of the fuzz target body which don't depend on the fuzzed action's characteristics.
+For instance, the logic that initializes and maintains a vector of available subaction indices is implemented in RL source code.
+This increases the readability and maintainability of the RLC extension that emits the fuzz target.
+Since compiling RL source code is not a challenge for RLC, and emitting new operations that don't derive from a source code rapidly becomes very difficult to maintain.
+
+To sum up, the fuzz target is generated in three distinct components that are then all linked together.
+The fuzz target called by libFuzzer and the utility functions to parse the fuzz input are written in C++ and compiled by a C++ compiler while building RLC.
+The parts of the actual fuzz target body that do not depend on the fuzzed action's characteristics are written in RL, and they are shipped with RLC as part of the standard library.
+The parts of the actual fuzz target that depend on the fuzzed action's characteristics are instead emitted by RLC at compile time if the \texttt{--fuzzer} option is specified.
+Linking these three components, as well as libFuzzer itself, produces the final fuzzer binary.
+
+\subsection{Deducing the availability of subactions}
+Available subactions are subactions which the action can resume from. A subaction is available if the execution of the action has last suspended on the \texttt{ActionStatement} corresponding to that subaction or an \texttt{ActionsStatement} containing it.
+In Section \ref{filteringUnavailableSubactions}, we described how we can generate subaction calls only to available subactions.
+As a prerequisite, we assumed the availability of some mechanism to decide whether an action is available.
+In this section, we explain the relevant implementation details of RLC and describe how we implemented this mechanism.
+
+To start with, we should describe how subaction functions called at the wrong time cause crash.
+Recall that action calls return action objects that keep track of the state of the action.
+This state includes frame variables, as well as where the action has last suspended.
+The first field of the returned action object is always \texttt{resumeIndex}.
+\texttt{resumeIndex = 0} means the action has not started executing yet, and will start from the beginning of its body.
+When suspending on an \texttt{ActionStatement} or \texttt{ActionsStatement}, a \texttt{resumeIndex} corresponding to that statement is stored in the action object.
+The subaction functions all accept this action object as their first argument and they implicitly have a precondition checking whether the \texttt{resumeIndex} stored in it is the expected one.
+When a subaction function is called at the wrong time, this precondition fails, resulting in a crash.
+
+Taking this into account, it's sufficient to check whether the stored \texttt{resumeIndex} is the one expected by the subaction function to dynamically decide its availability.
+
+\subsection{Deducing the legality of subaction calls}
+As alluded to in Section \ref{avoidingCrashes}, we need a mechanism to dynamically decide whether a subaction call with a particular set of arguments is expected to result in a crash.
+In this section, we explain how this mechanism is implemented.
+
+We make two extensions to RLC in order to be able to check the legality of subaction arguments.
+First, we introduce an additional IR node, called \texttt{CanOp}.
+\texttt{CanOp}s have a single operand and a single result, both of type \texttt{Function}.
+A \texttt{CanOp} returns a function that accepts the same arguments as its operand, and has a boolean return type.
+The function returns whether its operand's precondition evaluates to true with the arguments passed to it.
+Second, we introduce a new compiler pass.
+This pass walks through each function in the module, emits a global function that checks its precondition, then replaces the results of all \texttt{CanOp}s referring to the original function with the newly emitted precondition checker.
+
+Having introduced \texttt{CanOp}, the emitted fuzz target can deduce whether a subaction call is legal simply by emitting a \texttt{CanOp} to the subaction function, and a call to the \texttt{CanOp}'s result with the picked arguments.
+This allows the emitted fuzzer to avoid running into expected crashes.
+
+\subsection{Preconditions}
