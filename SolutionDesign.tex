@@ -41,7 +41,7 @@ act nim() -> Nim:
 The action is a slightly modified version of the Nim example from the previous section.
 In this version, the initial number of sticks is picked through an action. This change makes the examples more illustrative by introducing more than one action.
 
-\subsection{Generating black-box fuzz targets}
+\subsection{Generating black-box fuzz targets} \label{blackboxFuzzTargets}
 As a baseline for our discussion, let us describe a simple method to generate black-box fuzz targets for RL actions.
 A black-box fuzz target knows about the subactions available in the action's interface, and their signatures. (TODO: think about renaming "subaction")
 The simplest black-box fuzz target uses some portion of the fuzz input to decide which subaction to call.
