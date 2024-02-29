@@ -263,4 +263,88 @@ This pass walks through each function in the module, emits a global function tha
 Having introduced \texttt{CanOp}, the emitted fuzz target can deduce whether a subaction call is legal simply by emitting a \texttt{CanOp} to the subaction function, and a call to the \texttt{CanOp}'s result with the picked arguments.
 This allows the emitted fuzzer to avoid running into expected crashes.
 
-\subsection{Preconditions}
+\subsection{Precondition Analysis}
+The last major improvement to the fuzzers we generate is utilizing RL preconditions to avoid picking subaction arguments for which the subaction's precondition evaluates to false.
+Before we detail our implementation, we should discuss the difficulty of this problem in the general case.
+The precondition of an RL subaction consists of a set of boolean expressions implicitly in conjunction.
+These boolean expressions are not limited in the scopes and types of sub-expressions they can include.
+They may include function calls, and the function calls might be blocking, they may have side effects and they may be non-deterministic.
+Even if we could assume that preconditions consist only of pure, non-blocking, deterministic expressions, finding a set of arguments to satisfy their conjunctions is no easier than answering arbitrary SMT queries.
+
+Given this perspective, our approach is to handle some subset of preconditions and extract the maximum information from those.
+We can not claim to always be able to generate legal arguments, but we can handle some of the most frequent types of constraints to greatly reduce the number of illegal arguments we generate.
+Our technique is a best-effort, not a definitive solution.
+
+We restrict our precondition analysis to integer arguments to subaction functions, as well as struct arguments that are composed solely of integers and other such structs.
+For each integer argument, or integer field of a struct argument of a subaction call, we dynamically decide a minimum and a maximum value.
+Such that any value greater than the maximum or smaller than the minimum certainly invalidates the precondition.
+Then, we pick the argument to be any integer in this range using the $pickValue(fuzzInput, INT\_MIN, INT\_MAX)$ function implemented in C++ introduced previously.
+Although this is far from a perfect model of arbitrary constraints on integers, we have found it to be descriptive enough to significantly boost fuzzing performance.
+
+Let us now describe how we decide the minimum and maximum values dynamically.
+For simplicity, we focus only on integer arguments here.
+We start by defining a classification on expressions that comprise the precondition in terms of the availability of their evaluation at runtime.
+We classify expressions into two categories:
+\begin{description}
+    \item [Bound expressions] are expressions such that we can decide the value they will evaluate to while evaluating the precondition before we evaluate the precondition.
+These include constants, local variables, global variables and combinations of these with deterministic operations, as well as deterministic function calls.
+    \item [Unbound expressions] are expressions such that it's not possible to know the value they will evaluate to before evaluating the precondition.
+    These include arguments of the subaction, nondeterministic function calls and any expression that them as sub-expressions.
+\end{description}
+
+Note that an argument of the subaction does not have to be an unbound value.
+In fact, since RLC implements action objects' member functions as global functions with the implicit first argument pointing to the object, the first argument of any subaction function call is always a bound expression, it evaluates to the action object.
+Having introduced this terminology, our goal is to find the minimum and maximum values the unbound arguments of a subaction function can take while satisfying the function's precondition.
+
+We introduce a new compiler pass to emit the code that decides the minimum and maximum values dynamically.
+We start by normalizing the precondition to be a disjunction of conjunction of terms, where each term is a value produced by something other than an \texttt{AndOp} or an \texttt{OrOp}.
+In other words, we express the precondition in the form $(t_1 \land t_2 \land ...) \lor (t_3 \land t_4 \land ...) \lor ...$.
+Then, we emit a block of code for each unbound argument that computes its minimum and maximum values.
+
+For each conjunction $(t_1 \land t_2 \land ...)$ in the normalized precondition, we classify its terms depending on how they relate to \texttt{arg}.
+\begin{description}
+    \item [Conditions] are terms that consist solely on bound expressions. A condition itself is bound and can be evaluated without invoking the subaction precondition.
+    \item [Constraints] are terms that include \texttt{arg} as a sub-expression, and no other unbound expressions.
+    These terms impose constraints on \texttt{arg} that can be entirely expressed before the invocation of the precondition.
+\end{description}
+The rest of the terms depend on one or more unbound expressions other than \texttt{arg}.
+For this analysis, we assume they do not constrain \texttt{arg} in any capacity.
+This assumption does not always hold, and that might result in loose minimum and maximum bounds, but we simply can not decide the constraints imposed by these terms on \texttt{arg} before evaluating the precondition.
+Discarding these terms is as far as our best-effort approach can stretch.
+
+At runtime, before evaluating the precondition, we can evaluate whether all conditions of a conjunction $(t_1 \land t_2 \land ...)$ hold.
+If all conditions hold, the constraints of this conjunctions are said to be active.
+Assuming we can decide the minimum and maximum values imposed on \texttt{arg} by a single constraint, we can compute the aggregate minimum and maximum values by intersecting the ranges imposed by the terms of each active conjunction,
+then computing the union of ranges imposed by all active conjunctions.
+We can achieve this by emitting an if statement of the following form for each conjunction:
+
+\begin{algorithm}[H]
+    \caption{Aggregating the minimum and maximum values imposed by individual constraints}
+    \begin{algorithmic}[1]
+    \STATE $aggregate\_min \gets \infty$
+    \FOR {conjunction $(cond_1 \land cond_2 \land constr_1 \land constr_2) in normalized precondition$}
+        \IF {$cond_1 \land cond_2$}
+            \STATE $current\_min \gets -\infty$
+            \IF {$imposed\_min(constr_1) > current\_min $}
+                \STATE $current\_min \gets imposed\_min(constr_1)$
+            \ENDIF
+            \IF {$imposed\_min(constr_2) > current\_min $}
+                \STATE $current\_min \gets imposed\_min(constr_2)$
+            \ENDIF
+        \ENDIF
+        \IF {$current\_min <  aggregate\_min$}
+            \STATE $aggregate\_min \gets current\_min$
+        \ENDIF
+    \ENDFOR
+    \end{algorithmic}
+\end{algorithm}
+and similarly for the maximum value.
+
+As for how how we decide the minimum and maximum values imposed by individual constraints, we adopt a similar best-effort approach where we handle some forms of constraints that can easily be handled.
+For more complex constraints, we simply assume they constrain the \texttt{arg} to be in the range $(-\infty, \infty)$.
+
+We handle constraints that are binary operations where any one of the two operands is \texttt{arg} and the operation is one of $<$, $>$, $\le$, $\ge$, $=$.
+In addition, we handle the constraints which are \texttt{CallOp}s with the callee being the result of a \texttt{CanOp}.
+In this case, we apply a recursive constraint analysis to the underlying callee, mapping the unbound expressions in the current analysis context to the new analysis context to decide how \texttt{arg} is constrained by the precondition of the callee.
+Recursively analyzing preconditions of \texttt{CallOp}s in the precondition is critical to the applicability of this technique because RLC has some passes that wrap an action function inside of another action function.
+We would not be able to utilize the preconditions of wrapped action functions without handling these constraints.
