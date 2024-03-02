@@ -1,0 +1,117 @@
+In this chapter, we aim to provide an insight into the widely adopted technologies for compilers and fuzzing.
+
+\section{Compiler technologies}
+\subsection{LLVM}
+LLVM, short for Low Level Virtual Machine, is a compiler framework designed to perform lifelong program analysis and transformation for arbitrary software. [ref here]
+Lifelong analysis and transformation includes link-time techniques for interprocedural analyses, install-time techniques for machine-dependent optimizations and runtime techniques for dynamic analyses.
+LLVM revolves around a common program representation independent from both the source language and the target architecture, called LLVM IR.
+LLVM IR is a RISC-like instruction set enhanced with some high level information to facilitate analyses.
+It includes source language independent type information, explicit control flow graphs and explicit dataflow representations using registers in Static Single Assignment form [ref here].
+The design of this intermediate representation allows utilizing the LLVM framework with a wide range of source languages and target architectures, while being descriptive enough to allow powerful transformations, analyses and optimizations on the IR itself.
+
+LLVM has a three tier architecture. First, the program in a source language is first compiled compiled into LLVM IR.
+This stage includes lexical analysis, syntax analysis, semantic analysis and high-level language dependent optimizations and transformations.
+The most popular example, clang, is an LLVM front-end that [ref here] compiles C, Objective C and C++ into LLVM IR.
+However, clang is far from being the only adopted frontend for LLVM.
+Researchers have developed LLVM frontends for to perform various tasks ranging from compiling languages like Rust [ref here] or Ruby[ref here] to creating a JIT compiler for Python [ref here].
+
+Then, compiler language-independent optimizations, analyses and transformations are performed on LLVM IR[ref here - llvm docs].
+These are implemented as independent passes on the IR.
+Examples include analyses such as stack safety analysis and memory dependence analysis, as well as 
+transformations such as dead code elimination, function inlining and duplicate global constant merging.
+Thanks to the modular nature of this optimization and analysis stage, researchers have implemented various custom passes for tasks such as polyhedral optimization[ref here] and race detection [ref here]. 
+
+Lastly, the optimized LLVM IR is handed over to a target architecture dependent code generator.
+The code generator performs architecture-dependent optimizations, as well as tasks such as instruction selection and register allocation.
+Separating this stage form the rest of the compile architecture enables developers to support a new architecture by implementing a new code generator only.
+
+\subsection{MLIR}
+MLIR, short for Multi-Level IR Compiler Framework is a framework aiming to reduce software fragmentation in compiler development, improve compilation for heterogenous hardware, facilitate the development of compilers for domain specific languages and pave the way to connect existing compiler frameworks together[ref here].
+MLIR is maintained as part of the LLVM project, and is tightly integrated with LLVM.
+
+The creators of MLIR observed that even though the LLVM framework is useful for reusing compilation techniques and algorithms that do not depend on
+the source language and the target architecture, modern languages often resort to developing their own IR in order to solve domain-specific problems.
+Such as library-specific optimizations or optimizing machine learning pipelines.
+In addition, lowering from a decorated syntax tree for a modern language to LLVM IR is not always a straight-forward task and often necessitates one or more intermediate forms of IR, as illustrated in Figure \ref{compilationPipelines}.
+
+Although it's certainly possible develop intermediate representations for compiler frontends, the developers end up solving many common problems such as 
+location tracking, pass management and pattern based lowering.
+This manifests in a decreased quality in the infrastructure of these compilers, especially for smaller domain specific languages.
+MLIR solves this problem by introducing a standard for Static Single Assignment based intermediate representations.
+IR's developed with MLIR can make use of the MLIR's library of solutions to common problems, and integrate with other MLIR based IR's with great ease.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics*[width=8cm]{Compilation_pipelines}
+    \caption{Compilation pipelines of different languages. Taken from [ref here].}
+    \label{compilationPipelines}
+\end{figure}
+
+\subsubsection{Structure of MLIR}
+In MLIR, the unit of semantics is an "Operation", shortly referred to as Ops. Ops can represent various program concepts ranging from a single instruction or a function to a whole file or module.
+An Op has one or more operands, and more or more results. Both operands and results are SSA values.
+An Op's operands' definitions need to dominate the Op, and MLIR takes care of validating this constraint.
+In addition, MLIR allows nesting operations via Regions. An Op may have one more more attached Regions, which can contain one or more Blocks.
+Blocks are in turn sequential lists of operations.
+The blocks of a region form a control flow graph.
+The semantics of this control flow graph, as well as the semantics of the region itself depend on the type of Op they are attached to.
+An Op may also have one or more attributes, which represent compile-time information such as constants and names.
+
+As opposed to LLVM IR's fixed set of instructions, MLIR has an extensible set of Ops.
+An MLIR based IR for a domain specific language is organized into one or more MLIR dialects.
+Dialects define types of Ops, as well as value types and attributes.
+The MLIR repository includes many dialects to model different types of IR [ref - MLIR docs].
+For instance, there exists an LLVM dialect which models LLVM IR, a SPIR-V to represent graphics shaders and compute kernels, and a "linalg" dialect to represent linear algebra structures and operations.
+
+During compilation, the IR does not need to consist solely of a single dialect at every instance.
+The IR in general is made of operations from a collection of dialects, and it's lowered incrementally by multiple passes into the target dialect.
+Most commonly, the target dialect is LLVM. But MLIR can support lowering into different dialects too.
+This extensibility has been utilized to create a wide range of domain specific compilers ranging from an Open Neural Network Exchange (ONNX) compiler [ref] to a High Level Synthesis (HLS) compiler[ref].
+Most notably for this thesis, RLC itself is implemented as an MLIR dialect and a collection of passes to lower it to LLVM IR.
+
+\section{Fuzzing}
+Fuzzing, as introduced by Miller \textit{et al.} in 1998[ref here], is an automated software testing technique where the program under test is invoked with randomly generated test cases hoping to trigger bugs.
+A fuzzer is a program that generates the test cases. Although Miller \textit{et al.}'s idea was as simple as invoking UNIX utilities with random strings, fuzzers today are much more sophisticated.
+As an example, American Fuzzy Lop (AFL) [ref here] applies some lightweight instrumentation to the branch instructions of the compiled programs it tests.
+Then, it measures how many new CFG edges are traversed by each fuzz input at runtime.
+It generates new fuzz inputs by mutating the ones that result in high coverage.
+On the other hand, SlowFuzz [reference] tracks the resource usage of its test target to find inputs that trigger algorithmic complexity vulnerabilities.
+Today, fuzzing is an increasingly popular technique to find software vulnerabilities.
+
+\subsection{White-box vs. black-box fuzzers}
+Fuzzers can be categorized in terms of how much information they require about the program under test.
+Black-box fuzzers require no information about their target.
+They either generate inputs completely randomly or mutate an initial library of well-known inputs using a set of pre-defined rules.
+On the other hand, white-box fuzzers know everything there is to know about the program under test.
+One example, DART [ref], first feeds random inputs to the program under test, symbolically executes the discovered traces to gather a set of path constraints on them, then uses a solver to generate inputs that are guaranteed to discover new paths.
+In practice, most widely used fuzzers today fall into a category in between these two, gray-box fuzzing.
+They make use of partial information about the program under test.
+This information is generally obtained by instrumenting the program.
+
+For the fuzzers described as part of our work, we use the term black-box for the fuzzers that make the smallest use of the information available about the fuzzed games.
+Similarly, we will use the term white-box to describe the fuzzers that use most of the available information, compared to the alternatives described in this thesis.
+In reality, all fuzzers implemented as part of this thesis can be described as grey-box fuzzers.
+Nevertheless, we find the terms black-box and white-box useful to highlight the difference in the fuzzers we implement.
+
+\subsection{libFuzzer - Fuzzing in LLVM}
+LibFuzzer [ref] is the fuzzing engine integrated with the LLVM project.
+Being integrated with the Clang compiler, libFuzzer is directly linked against the program under test, rather than running as a separate process that invokes the program under test.
+The link between libFuzzer and the program under test is formed by a function called the fuzz target.
+The fuzz target is a C function that should call the API of the program under test utilizing the fuzz input. 
+It has the following signature:
+
+\begin{lstlisting}  
+int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
+    DoSomethingInterestingWithMyAPI(Data, Size);
+    return 0;
+}
+\end{lstlisting}
+
+Since it is integrated with the LLVM framework, libFuzzer can make use of various LLVM sanitizers.
+For instance, information provided by Address Sanitizer (ASAN) [ref] enables libFuzzer to detect bugs that might otherwise happen silently, such as buffer overflows or memory leaks.
+
+Futhermore, being a gray-box fuzzing engine, libFuzzer uses instrumentation on the program under test to track the basic blocks visited by each fuzz input.
+This instrumentation is provided by LLVM's SanitizerCoverage [ref].
+The instrumentation being external to libFuzzer and included in LLVM is vital to the method we introduce in this thesis.
+Even though, we do not use the whole Clang pipeline, we can integrate SanitizerCoverage after lowering RL to LLVM IR.
+This enables us to seamlessly provide the coverage information to libFuzzer with little effort.

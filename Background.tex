@@ -1,4 +1,43 @@
-\section{Description of RL}
+In this chapter, we introduce the motivation behind RL and provide a brief overview of the language.
+Then, we describe the language features tightly linked with fuzzing in greater detail, aiming to supply the reader enough of a background to 
+be able to comprehend how our fuzzer generation technique works.
+
+\section{What is RL}
+RL (RuleBook) is a domain specific language to describe multi-agent interactions, most commonly games.
+RLC is the compiler for RL. RL is created to solve a problem with the way games are implemented today that makes it difficult to apply automated analysis and machine learning techniques to games.
+Today, games are developed as a collection of event handlers.
+The developer specifies the actions players can take, as well as the effect of those actions on the game state.
+The actions are described in isolation, one has to analyze which actions can follow which others in order to simulate a game trace.
+In contrast, when we describe games to other humans in natural language, as RL does, we describe them as sequential scenarios where the players get to take actions as part of the scenario.
+We expect the actions to be taken at certain points in the scenario, with certain constraints.
+As an example, compare two natural language descriptions of a single hand of blackjack to illustrate the difference.
+
+A description in terms of events, their results, and their constraints could be:
+\begin{itemize}
+    \item Players can take additional cards.
+    \item Players can pass.
+    \item It is always a single player’s turn.
+    \item When a player takes an additional card, they get a card from the top of the deck.
+    \item A player may not take an additional card unless it’s their turn.
+    \item A player may not take an additional card if they have passed before.
+    \item When a player takes an additional card or passes, it becomes the next player’s turn.
+    \item Players start with 2 cards in their hands.
+    \item If all players have passed once, the player with the hand closest to 21 wins.
+\end{itemize}
+
+On the other hand, a description as a sequential scenario could be:
+\begin{itemize}
+    \item The game starts by dealing each player a hand of 2 cards.
+    \item Until all players have passed once, each player that has not previously passed decides whether they want to take an additional card or pass.
+    \item The players with the hand closest to 21 wins.
+\end{itemize}
+The description organized into event handlers makes games harder to comprehend and potentially harder to develop for humans.
+However, RL's main focus is not really on human readability.
+It tries to solve the problem that modern games implemented as event handlers are very difficult to perform automated analyses on.
+A sequential description makes game descriptions more amenable to automated analysis techniques.
+These techniques can range from fuzzing the game with random actions hoping to discover invalid game states early in development, to training ML models on the game.
+
+\section{Description of the RL language}
 RL is an imperative programming language and its structure is similar to other common imperative
 languages such as Python or C. An RL program is composed of functions, and the entry point is a special
 function with signature \texttt{fun main() -> Int}. Each function has a list of statements to be executed sequentially.
@@ -7,7 +46,6 @@ variable declarations, assignments, if statements, while loops, and function cal
 familiar language structure with a couple key features.
 
 \subsection{Actions}
-(TODO: decide on a wording / voice to use for executing statements of a function body.)
 In addition to regular functions, RL features another function-like construct called actions.
 The main difference between a function and an action is in their control flow semantics.
 When a function is called, it runs until it executes a return statement.
@@ -17,7 +55,7 @@ Then, it returns an action object that describes the current state of execution,
 The caller can invoke methods of this returned object to resume the execution from its previous state.
 Action bodies do not contain explicit return statements, actions are meant to model processes, not values.
 
-Two kinds of statements suspend an action's executions: Action statements and actions statements (TODO: the naming is very awkward here.)
+Two kinds of statements suspend an action's executions: Action statements and actions statements
 An action statement has the syntax \texttt{act action\_name( param\_type param\_name, ...)}.
 When the action suspends on an action statement, it can be resumed by calling the method of the action object that shares a signature with the action statement.
 The action then resumes execution starting from the statement immediately succeeding the action statement.
@@ -40,15 +78,12 @@ actions:
 An action suspended on an actions statement can be resumed on any of the action statements contained in it.
 When resumed, only statements until the next action statement are executed before proceeding to the actions statement's successor.
 
-(TODO: Should I mention subaction statements here?)
 
 Not all variables in an action's body are exposed to callers.
 Variables declared with the keyword \texttt{frm} are stored in the action's frame.
 They persist across suspensions and are reachable from outside the action.
 On the other hand, variables declared with the keyword \texttt{let} are temporary values.
-They are discarded when the action's execution suspends, just like local variables in regular functions.
-
-As an example, consider the following program:
+They are discarded when the action's execution suspends, just like local variables in regular functions. As an example, consider the following program:
 
 \lstinputlisting{action_example.rl}
 
@@ -103,3 +138,6 @@ act nim(Int num_sticks) {num_sticks > 0} -> Nim:
 
     winner = current_player
 \end{lstlisting}
+To summarize, RL is a domain-specific language aimed at writing, reading and automatically analyzing game descriptions easier, as well as running machine learning methods on them.
+It has a Python-like syntax. RL allows describing games as sequential scenarios mainly through actions, which are stateful suspendable procedures.
+In addition, RL supports specifying preconditions for functions, actions and subactions, further facilitating the application of analysis techniques.
