@@ -256,12 +256,61 @@ Which explains why the complete whitebox fuzzer is able to significantly outperf
 
 \begin{figure}[h]
     \centering
-    \includegraphics*[width=12cm]{temp_num_executions_tic_tac_toe.png}
+    \includegraphics*[width=12cm]{num_executions_tic_tac_toe.png}
     \caption{Average number of tested fuzz inputs for tic tac toe.}
-    \label{totalTimesTicTacToe}
+    \label{avgInputsTicTacToe}
 \end{figure}
 
-[TODO: write some discussion about the average number of tested fuzz inputs for tic tac toe here once you have the final graph.]
-
+Figure \ref{avgInputsTicTacToe} mimics our findings for Blackjack.
+\texttt{os-whitebox} is the fuzzer that uses most of the available information, and it can find the bug with the smallest number fuzz inputs.
+We observe that the difference in the number of fuzz inputs is on a much greater scale tan the difference in total fuzzing time between the white-box and black-box fuzzer for for this benchmark too.
+This is especially true for the comparison between \texttt{rlc-full} and \texttt{rlc-no-fsm}.
+For small bug depths, \texttt{rlc-full} can find the input in using less fuzz inputs but still takes more total time to test those inputs.
 
 \subsection{Crazy Eights}
+\begin{figure}[h]
+    \centering
+    \includegraphics*[width=12cm]{total_times_crazy_eights.png}
+    \caption{Average fuzzing times for crazy eights.}
+    \label{totalTimesCrazyEights}
+\end{figure}
+
+Crazy eights is the most complex of our three benchmarks.
+It features ten different actions. In addition, the constraints on three of those actions are too complex to be perfectly analyzed by our method.
+In Figure \ref{totalTimesCrazyEights}, we notice some similar patterns to the two other benchmarks.
+The black-box fuzzers perform the worst, neither of them can find the bug within the time threshold for input depths over 4.
+This is in line with our hypothesis, as well as the two other benchmarks.
+Once again, we notice that \texttt{os-whitebox} performs significantly better than any RLC fuzzer at large bug depths.
+This result is also expected since our constraint analysis falls short and the RLC fuzzers inevitably generate some invalid subaction calls.
+
+What is noticeably different for this benchmark is that \texttt{rlc-no-precons} actually performs better than \texttt{rlc-no-fsm} here.
+We believe this is a result of two factors.
+First, since this benchmarks includes some preconditions we can not analyze, the effectiveness of the precondition analysis is reduced.
+We can still argue that applying the limited precondition analysis has a notable positive impact on the fuzzing time by comparing \texttt{rlc-blackbox} with \texttt{rlc-no-fsm}, but the gap is not as wide as it is in the other two benchmarks.
+Second, the action in this benchmark has more subactions than the previous benchmarks.
+Furthermore, only a maximum of two of those subactions are available at any given state.
+As a result, if the fuzzer does not make an effort to avoid generating calls to unavailable subactions, it generates a much larger percentage of such calls in comparison to the previous benchmarks.
+This manifests in an increased benefit for avoiding generating such calls.
+The increased benefit of this optimization, combined with the decreased effectiveness of constraint analysis enables \texttt{rlc-no-precons} to outperform \texttt{rlc-no-fsm}.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics*[width=12cm]{num_executions_crazy_eights.png}
+    \caption{Average number of tested fuzz inputs for crazy eights.}
+    \label{avgInputsCrazyEights}
+\end{figure}
+
+Inspecting Figure \ref{avgInputsCrazyEights}, we observe white-box models needing to test less fuzz inputs before discovering the bug once again.
+The exception to this is \texttt{os-blackbox}, which tests less inputs for bug depths above 5.
+This is due to the fact that \texttt{os-blackbox} stops execution when it reaches the time limit, not when it discovers the bug.
+
+Comparing the average number of tested fuzz inputs for crazy eights with the other two benchmarks, we notice that the results for \texttt{rlc-no-fsm} and \texttt{rlc-no-precons} are much more similar than they are for the other benchmarks.
+We believe this is another result of the two factors that allow \texttt{rlc-no-precons} to find the bug in less time.
+
+In summary, across all three benchmarks, we have observed the white-box fuzzers to perform much better than their black-box counterparts.
+The effectiveness of the two improvements we make to RLC fuzzers, avoiding unavailable subactions and analyzing preconditions, vary depending on the benchmark.
+Nevertheless, these improvements are demonstrated to increase the fuzzer's performance unless they produce trivial results, such as avoiding unavailable subactions when the action has a single subaction that is always available.
+
+We have not observed a significant difference in the performance of OpenSpiel fuzzers and RLC fuzzers in general.
+\texttt{os-whitebox} has been the best performing fuzzer in general, but this can be attributed to the fact that it can avoid illegal action invocations in all three benchmarks, since it has access to a perfect set of legal actions and arguments.
+In fact, we have demonstrated that the RLC fuzzers can perform better than the white-box OpenSpiel fuzzer when it can analyze the preconditions equally well in the blackjack benchmark.
