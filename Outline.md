@@ -1,34 +1,17 @@
-- Relax data types
-    - bools
-    - floats
-- Relax constraints
-
-
-
-
-- parse other primitive types (from the fuzz input).
-- make sure the simplest constraints work with other primitive types.
-- // Support constraints making calls to "simple" functions. (sort of like constant folding through the call graph.)
-
-
-- Write the benchmarks first.
-    - tic tac toe.
-    - look at the examples massimo mentioned.
-        - we need at least 6.
-
 Thesis
 Skeleton:
     (intro) (problem statement should be here.)
-    State of the art
+    [Background] 
         Motivation for RL.
+        a section where we talk about RL.
+    State of the art
+        LLVM and MLIR
         Fuzzing
             What it is
             Current tools
             Grey-white-blackbox fuzzing
-            How we apply fuzzing (talk about libFuzzer (how one normally uses it))
-        LLVM and MLIR
-
-    [Background] a section where we talk about RL.
+        Fuzzing in LLVM
+        
     Solution design
         Alternatives we have considered.
         Process-oriented or architecture-oriented.
@@ -42,3 +25,10 @@ Skeleton:
     (conclusion & Future work)
 
 There's a Latex template somewhere I should find.
+
+Material for the State of the Art section:
+- The previous thesis (in my mail.) (especially section 1.3)
+  Wrtie about:
+  - What fuzzing is
+  - What are the tools used for fuzzing (particularly in compilers).
+  - Talk about how they apply to our goal.

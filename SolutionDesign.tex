@@ -263,7 +263,7 @@ This pass walks through each function in the module, emits a global function tha
 Having introduced \texttt{CanOp}, the emitted fuzz target can deduce whether a subaction call is legal simply by emitting a \texttt{CanOp} to the subaction function, and a call to the \texttt{CanOp}'s result with the picked arguments.
 This allows the emitted fuzzer to avoid running into expected crashes.
 
-\subsection{Precondition Analysis}
+\subsection{Precondition Analysis} \label{preconditionAnalysis}
 The last major improvement to the fuzzers we generate is utilizing RL preconditions to avoid picking subaction arguments for which the subaction's precondition evaluates to false.
 Before we detail our implementation, we should discuss the difficulty of this problem in the general case.
 The precondition of an RL subaction consists of a set of boolean expressions implicitly in conjunction.

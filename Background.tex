@@ -3,7 +3,7 @@ Then, we describe the language features tightly linked with fuzzing in greater d
 be able to comprehend how our fuzzer generation technique works.
 
 \section{What is RL}
-RL (RuleBook) is a domain specific language to describe multi-agent interactions, most commonly games.
+RL (RuleBook) is a domain specific language to describe multi-agent interactions, most commonly games \cite{RLC}.
 RLC is the compiler for RL. RL is created to solve a problem with the way games are implemented today that makes it difficult to apply automated analysis and machine learning techniques to games.
 Today, games are developed as a collection of event handlers.
 The developer specifies the actions players can take, as well as the effect of those actions on the game state.
@@ -18,7 +18,7 @@ A description in terms of events, their results, and their constraints could be:
     \item Players can pass.
     \item It is always a single player’s turn.
     \item When a player takes an additional card, they get a card from the top of the deck.
-    \item A player may not take an additional card unless it’s their turn.
+    \item A player may not take an additional card unless it is their turn.
     \item A player may not take an additional card if they have passed before.
     \item When a player takes an additional card or passes, it becomes the next player’s turn.
     \item Players start with 2 cards in their hands.
@@ -60,7 +60,7 @@ An action statement has the syntax \texttt{act action\_name( param\_type param\_
 When the action suspends on an action statement, it can be resumed by calling the method of the action object that shares a signature with the action statement.
 The action then resumes execution starting from the statement immediately succeeding the action statement.
 In addition, the action statement's parameters are accessible by successive statements.
-The parameters assume the value of arguments passed to the function that resumed the execution.
+The parameters assume the value of arguments passed to the function that resumes the execution.
 
 An actions statement has the following syntax
 \begin{lstlisting}
@@ -83,7 +83,8 @@ Not all variables in an action's body are exposed to callers.
 Variables declared with the keyword \texttt{frm} are stored in the action's frame.
 They persist across suspensions and are reachable from outside the action.
 On the other hand, variables declared with the keyword \texttt{let} are temporary values.
-They are discarded when the action's execution suspends, just like local variables in regular functions. As an example, consider the following program:
+They are discarded when the action's execution suspends, just like local variables in regular functions.
+As an example, consider the following program:
 
 \lstinputlisting{action_example.rl}
 
