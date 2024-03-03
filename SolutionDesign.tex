@@ -1,14 +1,14 @@
-\section{Conceptual design}
+
 As previously stated (TODO: make sure this is stated previously.), our goal is to implement a method of automatically generating
  efficient fuzzers for actions described in RL.
 In this section, we describe how we accomplish that goal.
 We start by describing a simple method to generate black-box fuzzers that uses almost none of the information available in an RL action description.
 Then, we build on this method incrementally, integrating parts of the available information one by one in order to improve performance.
 
-\subsection{The form of a fuzzer}
-Within the scope of this thesis, we only consider fuzzers integrated with LLVM's libFuzzer. (TODO: explain why?)
+\section{Conceptual Design}
+Within the scope of this thesis, we only consider fuzzers integrated with LLVM's libFuzzer.
 LibFuzzer interfaces with the fuzzed action through a fuzzing entrypoint called the fuzz target.
-The fuzz target is a function that accepts an array of bytes and does something interesting with these bytes using the API under test (TODO: I took part of this from libFuzzer's page.).
+The fuzz target is a function that accepts an array of bytes and does something interesting with these bytes using the API under test \cite{LibFuzzer}.
 LibFuzzer invokes this function repeatedly with different fuzz inputs. It tracks which areas of the code are reached, and generates mutations on the corpus of input data in order to maximize the code coverage.
 Utilizing libFuzzer, we narrow the task of generating a fuzzer down to the task to generating a fuzz target.
 The fuzz target should use the fuzz input it receives to interact with the interface of the fuzzed action.
@@ -43,7 +43,7 @@ In this version, the initial number of sticks is picked through an action. This 
 
 \subsection{Generating black-box fuzz targets} \label{blackboxFuzzTargets}
 As a baseline for our discussion, let us describe a simple method to generate black-box fuzz targets for RL actions.
-A black-box fuzz target knows about the subactions available in the action's interface, and their signatures. (TODO: think about renaming "subaction")
+A black-box fuzz target knows about the subactions available in the action's interface, and their signatures.
 The simplest black-box fuzz target uses some portion of the fuzz input to decide which subaction to call.
 Then, it generates arguments for each of the picked subaction's parameters.
 Finally, it calls the subaction with the generated arguments.
@@ -104,7 +104,7 @@ If a call is expect to cause a crash, we describe the call as illegal.
 When we make an illegal call, the program will crash and the fuzzer will report a bug.
 However, we are not interested in these crashes since they are a result of how the fuzz target interacts with the action, not a result of how the action is described.
 To solve this problem, we need some runtime mechanism to decide the legality of a call.
-We assume such a mechanism to be available for now and describe its implementation in a later section. (TODO: link that section here).
+We assume such a mechanism to be available for now and describe its implementation in section \ref{decidingLegality}.
 Then, the fuzz target we generate should check the legality of all subaction calls it makes, and avoid making illegal calls.
 When it generates an illegal call, the fuzz target can simply continue to the next iteration of the main loop and generate a new call.
 This methods interprets the fuzz input as a sequence of legal action calls.
@@ -133,7 +133,7 @@ For the Nim example, we would obtain the following fuzz target:
 \end{algorithm}
 
 With these improvements, we have a functionally correct design.
-However, Even if we never make illegal calls, wasting fuzz input bits by generating illegal calls decreases the fuzzer's performance. (TODO: should I argue / demonstrate why?)
+However, Even if we never make illegal calls, wasting fuzz input bits by generating illegal calls decreases the fuzzer's performance.
 We can reduce the number of illegal calls we generate, and therefore improve the efficiency of the fuzzers by making use of more information available in the action description.
 
 \subsection{Filtering out unavailable subactions}\label{filteringUnavailableSubactions}
@@ -141,7 +141,8 @@ The first observation we make about the legality of subaction calls is that any 
 With this observation, we can dynamically classify subactions as "available" or "unavailable".
 If we can guarantee we never generate a call to an unavailable subaction, we eliminate a large portion of generated illegal calls.
 To achieve that, we need a mechanism to dynamically decide whether a subaction is available.
-Assuming we can implement this mechanism, we can make sure to only pick available subactions. (TODO: link the section here when you write it.)
+Assuming we can implement this mechanism, we can make sure to only pick available subactions.
+Our implementation of this mechanism is described in Section \ref{decidingAvailability}.
 
 Here is an example for the Nim game:
 \begin{algorithm}[H]
@@ -177,7 +178,7 @@ Here is an example for the Nim game:
 \subsection{Utilizing preconditions}
 Now that we have made sure we never pick unavailable subactions, the only remaining cause of generated illegal subaction calls is violated preconditions.
 Preconditions in RL can be arbitrarily complex. They can include any kind of expression RL supports, including calls to arbitrary functions.
-Therefore, given a set of conditions, finding a set of arguments that satisfy them is not an easy task. (TODO: Should I detail how hard this is?)
+Therefore, given a set of conditions, finding a set of arguments that satisfy them is not an easy task.
 As a result, we can not guarantee to never pick illegal arguments to a subaction call.
 Nevertheless, we can focus on particular forms of preconditions and extract some information from them to decrease the number of illegal arguments we generate.
 
@@ -185,7 +186,7 @@ As an example, consider the subaction arguments in the Nim action.
 We can replace \texttt{pickValue(fuzzInput, INT\_MIN, INT\_MAX)} at line 13 with \texttt{pickValue(fuzzInput, 1, INT\_MAX)}, since we know all negative choices are going to be discarded.
 Furthermore, when picking the argument of \texttt{pick\_up\_sticks}, we can \texttt{pickValue(fuzzInput, 1, min(4, game.remaining\_sticks))}, so that we guarantee never picking an argument out of bounds.
 
-The details of constraint types we consider in the scope of this thesis are described in a later section. (TODO: link that section here.)
+The details of constraint types we consider in the scope of this thesis are described in Section \ref{preconditionAnalysis}. 
 
 \section{Implementation}
 In this section, we explain how we implemented the method described in the previous section.
@@ -231,7 +232,7 @@ The parts of the actual fuzz target body that do not depend on the fuzzed action
 The parts of the actual fuzz target that depend on the fuzzed action's characteristics are instead emitted by RLC at compile time if the \texttt{--fuzzer} option is specified.
 Linking these three components, as well as libFuzzer itself, produces the final fuzzer binary.
 
-\subsection{Deducing the availability of subactions}
+\subsection{Deducing the availability of subactions}\label{decidingAvailability}
 Available subactions are subactions which the action can resume from. A subaction is available if the execution of the action has last suspended on the \texttt{ActionStatement} corresponding to that subaction or an \texttt{ActionsStatement} containing it.
 In Section \ref{filteringUnavailableSubactions}, we described how we can generate subaction calls only to available subactions.
 As a prerequisite, we assumed the availability of some mechanism to decide whether an action is available.
@@ -248,7 +249,7 @@ When a subaction function is called at the wrong time, this precondition fails, 
 
 Taking this into account, it's sufficient to check whether the stored \texttt{resumeIndex} is the one expected by the subaction function to dynamically decide its availability.
 
-\subsection{Deducing the legality of subaction calls}
+\subsection{Deducing the legality of subaction calls}\label{decidingLegality}
 As alluded to in Section \ref{avoidingCrashes}, we need a mechanism to dynamically decide whether a subaction call with a particular set of arguments is expected to result in a crash.
 In this section, we explain how this mechanism is implemented.
 

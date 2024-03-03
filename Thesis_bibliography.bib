@@ -11,11 +11,226 @@
   commit = {335a376f0c7cca17203f4c759b5794a9c2a09dbd}
 }
 
-@InProceedings{LLVM:CGO04,
+@InProceedings{LLVM,
     author    = {Chris Lattner and Vikram Adve},
     title     = "{LLVM: A Compilation Framework for Lifelong Program Analysis \& Transformation}",
     booktitle = "{Proceedings of the 2004 International Symposium on Code Generation and Optimization (CGO'04)}",
     address   = {Palo Alto, California},
     month     = {Mar},
     year      = {2004}
-  }
+}
+
+@article{SSA,
+author = {Cytron, Ron and Ferrante, Jeanne and Rosen, Barry K. and Wegman, Mark N. and Zadeck, F. Kenneth},
+title = {Efficiently computing static single assignment form and the control dependence graph},
+year = {1991},
+issue_date = {Oct. 1991},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {13},
+number = {4},
+issn = {0164-0925},
+url = {https://doi.org/10.1145/115372.115320},
+doi = {10.1145/115372.115320},
+journal = {ACM Trans. Program. Lang. Syst.},
+month = {oct},
+pages = {451–490},
+numpages = {40},
+keywords = {control dependence, control flow graph, def-use chain, dominator, optimizing compilers}
+}
+
+@inproceedings{clang,
+  title={LLVM and Clang: Next generation compiler technology},
+  author={Lattner, Chris},
+  booktitle={The BSD conference},
+  volume={5},
+  pages={1--20},
+  year={2008}
+}
+
+@article{10.1145/2692956.2663188,
+author = {Matsakis, Nicholas D. and Klock, Felix S.},
+title = {The rust language},
+year = {2014},
+issue_date = {December 2014},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {34},
+number = {3},
+issn = {1094-3641},
+url = {https://doi.org/10.1145/2692956.2663188},
+doi = {10.1145/2692956.2663188},
+abstract = {Rust is a new programming language for developing reliable and efficient systems. It is designed to support concurrency and parallelism in building applications and libraries that take full advantage of modern hardware. Rust's static type system is safe1 and expressive and provides strong guarantees about isolation, concurrency, and memory safety.Rust also offers a clear performance model, making it easier to predict and reason about program efficiency. One important way it accomplishes this is by allowing fine-grained control over memory representations, with direct support for stack allocation and contiguous record storage. The language balances such controls with the absolute requirement for safety: Rust's type system and runtime guarantee the absence of data races, buffer overflows, stack overflows, and accesses to uninitialized or deallocated memory.},
+journal = {Ada Lett.},
+month = {oct},
+pages = {103–104},
+numpages = {2},
+keywords = {systems programming, rust, memory management, affine type systems}
+}
+
+@inproceedings{Rust,
+author = {Matsakis, Nicholas D. and Klock, Felix S.},
+title = {The rust language},
+year = {2014},
+isbn = {9781450332170},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/2663171.2663188},
+doi = {10.1145/2663171.2663188},
+abstract = {Rust is a new programming language for developing reliable and efficient systems. It is designed to support concurrency and parallelism in building applications and libraries that take full advantage of modern hardware. Rust's static type system is safe1 and expressive and provides strong guarantees about isolation, concurrency, and memory safety.Rust also offers a clear performance model, making it easier to predict and reason about program efficiency. One important way it accomplishes this is by allowing fine-grained control over memory representations, with direct support for stack allocation and contiguous record storage. The language balances such controls with the absolute requirement for safety: Rust's type system and runtime guarantee the absence of data races, buffer overflows, stack overflows, and accesses to uninitialized or deallocated memory.},
+booktitle = {Proceedings of the 2014 ACM SIGAda Annual Conference on High Integrity Language Technology},
+pages = {103–104},
+numpages = {2},
+keywords = {systems programming, rust, memory management, affine type systems},
+location = {Portland, Oregon, USA},
+series = {HILT '14}
+}
+
+@misc{RubyComp,
+  title={RubyComp: a Ruby to CIL compiler},
+  author={Alexandersson, Anders},
+  year={2004}
+}
+
+@misc{LLVMIRPasses,
+  author       = {LLVM},
+  howpublished = {\url{https://llvm.org/docs/Passes.html}},
+  title        = {LLVM’s Analysis and Transform Passes},
+}
+
+@inproceedings{Numba,
+author = {Lam, Siu Kwan and Pitrou, Antoine and Seibert, Stanley},
+title = {Numba: a LLVM-based Python JIT compiler},
+year = {2015},
+isbn = {9781450340052},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/2833157.2833162},
+doi = {10.1145/2833157.2833162},
+abstract = {Dynamic, interpreted languages, like Python, are attractive for domain-experts and scientists experimenting with new ideas. However, the performance of the interpreter is often a barrier when scaling to larger data sets. This paper presents a just-in-time compiler for Python that focuses in scientific and array-oriented computing. Starting with the simple syntax of Python, Numba compiles a subset of the language into efficient machine code that is comparable in performance to a traditional compiled language. In addition, we share our experience in building a JIT compiler using LLVM[1].},
+booktitle = {Proceedings of the Second Workshop on the LLVM Compiler Infrastructure in HPC},
+articleno = {7},
+numpages = {6},
+keywords = {compiler, Python, LLVM},
+location = {Austin, Texas},
+series = {LLVM '15}
+}
+
+@inproceedings{Polly,
+  title={Polly-Polyhedral optimization in LLVM},
+  author={Grosser, Tobias and Zheng, Hongbin and Aloor, Raghesh and Simb{\"u}rger, Andreas and Gr{\"o}{\ss}linger, Armin and Pouchet, Louis-No{\"e}l},
+  booktitle={Proceedings of the First International Workshop on Polyhedral Compilation Techniques (IMPACT)},
+  volume={2011},
+  pages={1},
+  year={2011}
+}
+
+@inproceedings{DynamicRaceDetection,
+  title={Dynamic race detection with LLVM compiler: Compile-time instrumentation for ThreadSanitizer},
+  author={Serebryany, Konstantin and Potapenko, Alexander and Iskhodzhanov, Timur and Vyukov, Dmitriy},
+  booktitle={International Conference on Runtime Verification},
+  pages={110--114},
+  year={2011},
+  organization={Springer}
+}
+
+@inproceedings{MLIR,
+  title={MLIR: Scaling compiler infrastructure for domain specific computation},
+  author={Lattner, Chris and Amini, Mehdi and Bondhugula, Uday and Cohen, Albert and Davis, Andy and Pienaar, Jacques and Riddle, River and Shpeisman, Tatiana and Vasilache, Nicolas and Zinenko, Oleksandr},
+  booktitle={2021 IEEE/ACM International Symposium on Code Generation and Optimization (CGO)},
+  pages={2--14},
+  year={2021},
+  organization={IEEE}
+}
+
+@article{MLIR2020,
+  title={MLIR: A compiler infrastructure for the end of Moore's law},
+  author={Lattner, Chris and Amini, Mehdi and Bondhugula, Uday and Cohen, Albert and Davis, Andy and Pienaar, Jacques and Riddle, River and Shpeisman, Tatiana and Vasilache, Nicolas and Zinenko, Oleksandr},
+  journal={arXiv preprint arXiv:2002.11054},
+  year={2020}
+}
+
+@misc{MLIRDialects,
+  author       = {MLIR},
+  howpublished = {\url{https://mlir.llvm.org/docs/Dialects/}},
+  title        = {Dialects},
+}
+
+@misc{onnx-mlir,
+      title={Compiling ONNX Neural Network Models Using MLIR}, 
+      author={Tian Jin and Gheorghe-Teodor Bercea and Tung D. Le and Tong Chen and Gong Su and Haruki Imai and Yasushi Negishi and Anh Leu and Kevin O'Brien and Kiyokuni Kawachiya and Alexandre E. Eichenberger},
+      year={2020},
+      eprint={2008.08272},
+      archivePrefix={arXiv},
+      primaryClass={cs.PL}
+}
+
+@inproceedings{ScaleHLS,
+  title={Scalehls: A new scalable high-level synthesis framework on multi-level intermediate representation},
+  author={Ye, Hanchen and Hao, Cong and Cheng, Jianyi and Jeong, Hyunmin and Huang, Jack and Neuendorffer, Stephen and Chen, Deming},
+  booktitle={2022 IEEE International Symposium on High-Performance Computer Architecture (HPCA)},
+  pages={741--755},
+  year={2022},
+  organization={IEEE}
+}
+
+@article{Miller1999,
+  title={An empirical study of the reliability of UNIX utilities},
+  author={Miller, Barton P and Fredriksen, Lars and So, Bryan},
+  journal={Communications of the ACM},
+  volume={33},
+  number={12},
+  pages={32--44},
+  year={1990},
+  publisher={ACM New York, NY, USA}
+}
+
+@misc{AFL,
+  author       = {Michał Zalewski},
+  howpublished = {\url{https://lcamtuf.coredump.cx/afl/technical_details.txt}},
+  title        = {American Fuzzy Lop - Whitepaper},
+  year         = {2006}
+}
+
+@inproceedings{Slowfuzz,
+  title={Slowfuzz: Automated domain-independent detection of algorithmic complexity vulnerabilities},
+  author={Petsios, Theofilos and Zhao, Jason and Keromytis, Angelos D and Jana, Suman},
+  booktitle={Proceedings of the 2017 ACM SIGSAC conference on computer and communications security},
+  pages={2155--2168},
+  year={2017}
+}
+
+@inproceedings{Dart,
+  title={DART: Directed automated random testing},
+  author={Godefroid, Patrice and Klarlund, Nils and Sen, Koushik},
+  booktitle={Proceedings of the 2005 ACM SIGPLAN conference on Programming language design and implementation},
+  pages={213--223},
+  year={2005}
+}
+
+@misc{LibFuzzer,
+  author       = {LibFuzzer},
+  howpublished = {\url{https://llvm.org/docs/LibFuzzer.html}},
+  title        = {LibFuzzer – a library for coverage-guided fuzz testing},
+}
+
+@inproceedings{ASAN,
+  title={$\{$AddressSanitizer$\}$: A fast address sanity checker},
+  author={Serebryany, Konstantin and Bruening, Derek and Potapenko, Alexander and Vyukov, Dmitriy},
+  booktitle={2012 USENIX annual technical conference (USENIX ATC 12)},
+  pages={309--318},
+  year={2012}
+}
+
+@misc{SanCov,
+  author       = {Clang},
+  howpublished = {\url{https://clang.llvm.org/docs/SanitizerCoverage.html}},
+  title        = {SanitizerCoverage: Clang documentation},
+}
+
+@article{OpenSpiel,
+  title={OpenSpiel: A framework for reinforcement learning in games},
+  author={Lanctot, Marc and Lockhart, Edward and Lespiau, Jean-Baptiste and Zambaldi, Vinicius and Upadhyay, Satyaki and P{\'e}rolat, Julien and Srinivasan, Sriram and Timbers, Finbarr and Tuyls, Karl and Omidshafiei, Shayegan and others},
+  journal={arXiv preprint arXiv:1908.09453},
+  year={2019}
+}
