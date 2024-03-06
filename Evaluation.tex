@@ -310,6 +310,6 @@ In summary, across all three benchmarks, we have observed the white-box fuzzers 
 The effectiveness of the two improvements we make to RLC fuzzers, avoiding unavailable subactions and analyzing preconditions, vary depending on the benchmark.
 Nevertheless, these improvements are demonstrated to increase the fuzzer's performance unless they produce trivial results, such as avoiding unavailable subactions when the action has a single subaction that is always available.
 
-We have not observed a significant difference in the performance of OpenSpiel fuzzers and RLC fuzzers in general.
+We have not observed a significant difference between the performance of OpenSpiel fuzzers and RLC fuzzers in general.
 \texttt{os-whitebox} has been the best performing fuzzer in general, but this can be attributed to the fact that it can avoid illegal action invocations in all three benchmarks, since it has access to a perfect set of legal actions and arguments.
 In fact, we have demonstrated that the RLC fuzzers can perform better than the white-box OpenSpiel fuzzer when it can analyze the preconditions equally well in the blackjack benchmark.

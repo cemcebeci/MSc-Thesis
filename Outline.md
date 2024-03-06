@@ -32,3 +32,19 @@ Material for the State of the Art section:
   - What fuzzing is
   - What are the tools used for fuzzing (particularly in compilers).
   - Talk about how they apply to our goal.
+
+Extended summary:
+    This is a 6 page document with the same structure as the thesis itself.
+    I should not worry about the number of bibliography entries.
+
+    Half a page of introduction
+    Half a gape for state of the art
+    About one page for the background section.
+    quarter of a page for the conclusion.
+
+Introduction of the summary:
+    What's the motivation? - We need to fuzz games, because they might be buggy.
+    Introduction of RL and motivation for implementing this in RL.
+    What we need to do to have this available in RL.
+    State our contribution
+    Present the outline of the whole document.

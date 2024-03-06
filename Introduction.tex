@@ -1,0 +1,65 @@
+Fuzzing is a software testing technique where the program under test is fed a large number of semi-random inputs, hoping to trigger unexpected behavior.
+Thanks to its demonstrated effectiveness and practicality of application, fuzzing is one of the most popular techniques to discover bugs and vulnerabilities in software.
+Fuzzing was conceived by Miller \textit{et al.} in 1988 \cite{Miller1999}.
+They applied the method to test the reliability of UNIX utilities, programs that accept a single input consisting of an arbitrary string.
+Over the last thirty years since the conception of fuzzing, it has been utilized in a multitude of fields to discover bugs in programs with more complex interfaces, such as compilers, network protocols and operating system kernels.
+
+Despite its popularity in a wide range of fields, fuzzing is not commonly used in the field of game development.
+One of the major factors in this is that most games developed today are implemented on a game engine that handles their main rendering pipeline, animations and even physics simulations.
+For an engine, it is critically important to be able to produce frames in real time.
+Therefore game engines can not allow the games implemented on them to control the main loop of the program.
+As a result, games today are not implemented as sequential pieces of code with blocking statements.
+Instead, they are implemented as a collection of event handlers.
+The game engine controlling the main loops invokes these handlers to apply the rules of the implemented game.
+Game rules are inevitably implemented in a way tightly coupled with the engine they are implemented on.
+This manifests in two major obstacles for the application of fuzzing.
+First, the application implementing a game consists mostly of game engine code.
+The logic implementing the rules of the game is only a small portion of the final product.
+Fuzzing such a final application introduces tremendous overhead on testing the rules of the game itself.
+Second, the structure in which game rules are defined obscures the actual form of inputs a game's rule accepts.
+As an example, consider an implementation of chess on a game engine.
+The engine's inputs are key strokes and mouse clicks, but the rules of chess define the actions on the game as legal movements of the game pieces.
+
+Furthermore, even if we assume to be able to separate the game logic from the engine it is implemented on, games have complex input patterns.
+For instance, consider backgammon.
+On their turn, a player has to decide whether they want to offer their opponent the doubling cube, the opponent must decide to either accept the cube or concede.
+Then, the player has to roll two six-sided dice, and finally move two pieces.
+We can identify at least four different kinds of actions to be taken on a game of backgammon: deciding whether to offer the doubling cube, deciding whether to accept, rolling the dice, using the dice to move pieces.
+The different kinds of actions are not uniform in the input they accept.
+The first two accept boolean inputs, the third one accepts to integers in the range $[1,6]$, and the last one accepts a piece to move.
+Additionally, these actions need to be performed in a certain sequence, which may depend on the inputs.
+For example, if the rolled dice are both 3, the player needs to move four pieces as opposed to two.
+Finally, not all pieces are moveable by an arbitrary amount, the dice the player rolls determine whether or not a particular piece is movable for the turn.
+To summarize, forming valid inputs to games can be a very complex task.
+Games can not be fuzzed simply by feeding them random strings the way Miller \textit{et al.} did for UNIX utilities.
+
+For these reasons, we propose utilizing RuleBook (RL) for the task of fuzzing games.
+RL is a novel domain specific language conceived to describe games \cite{RLC}.
+Games described in RL can be compiled into into libraries implementing their rules by the RuleBook Compiler (RLC).
+These libraries can be integrated with game engines to produce end-user software.
+In addition, they may be used to run automated analyses on the game rules.
+In particular, RL aims to transform game descriptions to a form amenable to efficient reinforcement learning.
+In RL, a game is described as a sequential piece of code, with special statements that can yield the control flow until a subsequent invocation.
+Through these statements, which are blocking for the game description but not blocking for the program's main loop, RL descriptions of games can specify what kinds of actions can be performed on them, when those actions may be performed and which parameters they may be performed with.
+Analyzing RL descriptions of games enables us to form accurate models for their complex input patterns.
+Furthermore, RLC allows us to feed inputs to the game logic isolated from any game engine.
+
+The contribution of this work is as follows:
+\begin{enumerate}
+    \item We propose a method to automatically generate fuzzers for games described in RL, integrated within the compiler.
+    \item We identify two factors diminishing the performance of game fuzzers: The generation of invocations to unavailable actions and the generation of illegal arguments.
+    \item We describe techniques to mitigate these two factors.
+    \item We generate fuzzers for games implemented in OpenSpiel to form reference for comparison.
+    \item We measure the performance of four versions of fuzzers generated by RLC, as well as two versions of fuzzers for OpenSpiel games.
+    \item We compare the performances of these fuzzers to assess the impact of utilizing information available in RL for fuzzing.
+\end{enumerate}
+
+\subsection*{Thesis organization}
+The remaining part of this thesis is organized as follows:
+\begin{description}
+    \item [Chapter 2] Explains the motivation behind RL, demonstrates the problems it aims to solve and describes the structure of the language. In particular, the language features utilized by our fuzzing technique.
+    \item [Chapter 3] Provides an overview of the technologies for compilers and fuzzing utilized by our method, as well as describing fuzzing and types of fuzzers in greater detail.
+    \item [Chapter 4] Details our method of automatically generating fuzzers along with the key features to improve their performance.
+    \item [Chapter 5] Describes our baseline of evaluation in the form of fuzzers for OpenSpiel games, details our experimental campaign and presents the experimental results.
+    \item [Chapter 6] Presents our conclusions and suggests future avenues of research related to our work. 
+\end{description}
