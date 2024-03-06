@@ -160,12 +160,12 @@
 \frontmatter % Use roman page numbering style (i, ii, iii, iv...) for the preamble pages
 
 \puttitle{
-	title=Title of the thesis, % Title of the thesis
+	title=Automated generation of efficient fuzzers for games using libFuzzer and RuleBook, % Title of the thesis
 	name=Cem Cebeci, % Author Name and Surname
 	course=Computer Science and Engineering \\Ingegneria Informatica, % Study Programme (in Italian)
 	ID  =  10837160,  % Student ID number (numero di matricola)
 	advisor= Prof. Giovanni Agosta, % Supervisor name
-	coadvisor={Massimo Fioravanti}, % Co-Supervisor name, remove this line if there is none
+	coadvisor= Massimo Fioravanti, % Co-Supervisor name, remove this line if there is none
 	academicyear={2023-2024},  % Academic Year
 } % These info will be put into your Title page 
 
@@ -179,18 +179,55 @@
 
 % ABSTRACT IN ENGLISH
 \chapter*{Abstract} 
-Here goes the abstract.
+Fuzzing is the practice of repeatedly calling a program with semi-random inputs.
+It is a popular technique to discover bugs and vulnerabilities in software.
+Despite the increasing popularity of fuzzing, it is not a commonly used technique to find bugs in games.
+One major factor in this is that games developed today are integrated with a game engine which controls the input, output and the main loop of the final software product.
+This makes it difficult to fuzz the game logic in isolation without having to fuzz the game engine code, which is often much larger than the game logic itself.
+Another factor is that games often have complex input patterns. They do not operate on a single large input but instead on a multitude of actions taken on them by the players.
+These actions must be taken according to some potentially complex rules.
+Even if a fuzzer knows all possible actions it can take on a game, generating valid sequences of actions can be a difficult task.
+
+RuleBook (RL) is a novel domain specific language designed to describe games and other rule-heavy simulations.
+In RL, games are described as sequential scenarios that suspend their execution on some special statements, waiting for an action to be taken on them.
+They specify the actions that can be taken on them at any point of execution, along with dynamically evaluated constraints on these actions.
+
+In this work, we propose a method to utilize RL descriptions of games to automatically generate fuzzers for them.
+These fuzzers can interpret an arbitrary sequence of bytes as a sequence of valid actions on the game.
+Then, we identify two factors that significantly affect the performance of game fuzzers: the number of generated unavailable actions and the number of picked illegal inputs.
+Then, we describe methods to reduce these factors in the emitted fuzzers.
+We measure the performance of four versions of fuzzers generated with this method, varying on how much information about the target game they utilize, along with two versions of fuzzers generated using OpenSpiel's game implementations.
+Using three sample games, we demonstrate that the fuzzers generated from RL descriptions are as performant as their OpenSpiel counterparts.
+Furthermore, we show that between RL fuzzers, versions that make the most use of the information RL exposes perform the best.
 \\
 \\
-\textbf{Keywords:} key, words, go, here% Keywords
+\textbf{Keywords:} compilers, fuzzing, games
 
 % ABSTRACT IN ITALIAN
 \chapter*{Abstract in lingua italiana}
-Qui va inserito l'abstract in italiano.
-\\
-\\
-\textbf{Parole chiave:} qui, vanno, le, parole, chiave% Keywords (italian)
+Il fuzzing è la pratica di richiamare ripetutamente un programma con input semi-casuali.
+È una tecnica popolare per scoprire bug e vulnerabilità nel software.
+Nonostante la crescente popolarità del fuzzing, non è una tecnica comunemente utilizzata per trovare bug nei giochi.
+Un fattore importante è che i giochi sviluppati oggi sono integrati con un motore di gioco che controlla l'input, l'output e il ciclo principale del prodotto software finale.
+Ciò rende difficile eseguire il fuzzing della logica di gioco in modo isolato senza dover eseguire il fuzzing del codice del motore di gioco, che spesso è molto più grande della logica di gioco stessa.
+Un altro fattore è che i giochi hanno spesso modelli di input complessi. Non operano su un unico grande input, ma su una moltitudine di azioni eseguite dai giocatori.
+Queste azioni devono essere eseguite secondo regole potenzialmente complesse.
+Anche se un fuzzer conosce tutte le possibili azioni che può compiere su un gioco, generare sequenze valide di azioni può essere un compito difficile.
 
+RuleBook (RL) è un nuovo linguaggio specifico per il dominio, progettato per descrivere giochi e altre simulazioni che richiedono regole.
+In RL, i giochi sono descritti come scenari sequenziali che sospendono la loro esecuzione su alcune dichiarazioni speciali, in attesa che venga eseguita un'azione su di essi.
+I giochi specificano le azioni che possono essere intraprese in qualsiasi momento dell'esecuzione, insieme a vincoli valutati dinamicamente su queste azioni.
+
+In questo lavoro, proponiamo un metodo per utilizzare le descrizioni RL dei giochi per generare automaticamente fuzzer per essi.
+Questi fuzzer possono interpretare una sequenza arbitraria di byte come una sequenza di azioni valide sul gioco.
+Poi, identifichiamo due fattori che influenzano significativamente le prestazioni dei fuzzer di gioco: il numero di azioni non disponibili generate e il numero di input illegali selezionati.
+Descriviamo quindi i metodi per ridurre questi fattori nei fuzzer emessi.
+Misuriamo le prestazioni di quattro versioni di fuzzer generati con questo metodo, a seconda della quantità di informazioni sul gioco di destinazione che utilizzano, insieme a due versioni di fuzzer generati utilizzando le implementazioni di gioco di OpenSpiel.
+Utilizzando tre giochi campione, dimostriamo che i fuzzer generati dalle descrizioni RL hanno le stesse prestazioni delle loro controparti OpenSpiel.
+Inoltre, dimostriamo che tra i fuzzer RL, le versioni che sfruttano maggiormente le informazioni esposte da RL sono le più performanti.
+\\
+\\
+\textbf{Parole chiave:} compilers, fuzzing, giochi
 %----------------------------------------------------------------------------
 %	LIST OF CONTENTS/FIGURES/TABLES/SYMBOLS
 %----------------------------------------------------------------------------
@@ -232,7 +269,8 @@ Qui va inserito l'abstract in italiano.
 \input{SolutionDesign.tex}
 \chapter{Evaluation}
 \input{Evaluation.tex}
-% \chapter{Conclusion}
+\chapter{Conclusion}
+\input{Conclusion.tex}
 
 %-------------------------------------------------------------------------
 %	BIBLIOGRAPHY

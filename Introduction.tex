@@ -35,7 +35,7 @@ Games can not be fuzzed simply by feeding them random strings the way Miller \te
 
 For these reasons, we propose utilizing RuleBook (RL) for the task of fuzzing games.
 RL is a novel domain specific language conceived to describe games \cite{RLC}.
-Games described in RL can be compiled into into libraries implementing their rules by the RuleBook Compiler (RLC).
+Games described in RL can be compiled into libraries implementing their rules by the RuleBook Compiler (RLC).
 These libraries can be integrated with game engines to produce end-user software.
 In addition, they may be used to run automated analyses on the game rules.
 In particular, RL aims to transform game descriptions to a form amenable to efficient reinforcement learning.
@@ -60,6 +60,6 @@ The remaining part of this thesis is organized as follows:
     \item [Chapter 2] Explains the motivation behind RL, demonstrates the problems it aims to solve and describes the structure of the language. In particular, the language features utilized by our fuzzing technique.
     \item [Chapter 3] Provides an overview of the technologies for compilers and fuzzing utilized by our method, as well as describing fuzzing and types of fuzzers in greater detail.
     \item [Chapter 4] Details our method of automatically generating fuzzers along with the key features to improve their performance.
-    \item [Chapter 5] Describes our baseline of evaluation in the form of fuzzers for OpenSpiel games, details our experimental campaign and presents the experimental results.
+    \item [Chapter 5] Describes our baseline of evaluation in the form of fuzzers for OpenSpiel games, details our experimental campaign on a selection of three benchmark games and presents the experimental results.
     \item [Chapter 6] Presents our conclusions and suggests future avenues of research related to our work. 
 \end{description}
