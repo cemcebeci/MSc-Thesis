@@ -181,21 +181,19 @@
 \chapter*{Abstract} 
 Fuzzing is the practice of repeatedly calling a program with semi-random inputs.
 It is a popular technique to discover bugs and vulnerabilities in software.
-Despite the increasing popularity of fuzzing, it is not a commonly used technique to find bugs in games.
-One major factor in this is that games developed today are integrated with a game engine which controls the input, output and the main loop of the final software product.
-This makes it difficult to fuzz the game logic in isolation without having to fuzz the game engine code, which is often much larger than the game logic itself.
-Another factor is that games often have complex input patterns. They do not operate on a single large input but instead on a multitude of actions taken on them by the players.
-These actions must be taken according to some potentially complex rules.
-Even if a fuzzer knows all possible actions it can take on a game, generating valid sequences of actions can be a difficult task.
+However, fuzzing is not very practical when applied input intensive programs such as games.
+A major factor in this is that games often have complex input patterns.
+They do not operate on a single large input but instead on a multitude of actions taken on them by the players.
+These actions must be taken according to some potentially complex rules, a particular action is only available on some game states and only with certain parameters.
+Therefore, even if a fuzzer knows all possible actions it can take on a game, generating valid sequences of actions can be a difficult task.
+An invalid sequence of actions does not make an interesting fuzz input, since the game is expected to fail with such an input.
+Consequently, frequently generating invalid sequences of actions decreases the fuzzer performance significantly.
+Luckily, information about when an action can be taken and the constraints on its parameters should be available in the game logic, since the game needs to validate the actions players take and display error messages when invalid actions are taken.
+Therefore, compiler techniques should be able to extract and exploit this information already present in the game rules to produce high-quality fuzzers.
 
-RuleBook (RL) is a novel domain specific language designed to describe games and other rule-heavy simulations.
-In RL, games are described as sequential scenarios that suspend their execution on some special statements, waiting for an action to be taken on them.
-They specify the actions that can be taken on them at any point of execution, along with dynamically evaluated constraints on these actions.
-
-In this work, we propose a method to utilize RL descriptions of games to automatically generate fuzzers for them.
-These fuzzers can interpret an arbitrary sequence of bytes as a sequence of valid actions on the game.
-Then, we identify two factors that significantly affect the performance of game fuzzers: the number of generated unavailable actions and the number of picked illegal inputs.
-Then, we describe methods to reduce these factors in the emitted fuzzers.
+In this work, we propose a method to generate fuzzers for games that utilize information about the dynamic availability of actions.
+We describe a technique to parse an arbitrary sequence of bytes as a sequence of actions on the game, then detail how we minimize the number of invalid actions in the parsed action sequences.
+We implement this technique in the RuleBook language compiler. RuleBook is a DSL for describing games and the RuleBook compiler has the information relevant to our technique available at compile time.
 We measure the performance of four versions of fuzzers generated with this method, varying on how much information about the target game they utilize, along with two versions of fuzzers generated using OpenSpiel's game implementations.
 Using three sample games, we demonstrate that the fuzzers generated from RL descriptions are as performant as their OpenSpiel counterparts.
 Furthermore, we show that between RL fuzzers, versions that make the most use of the information RL exposes perform the best.
@@ -293,7 +291,6 @@ Inoltre, dimostriamo che tra i fuzzer RL, le versioni che sfruttano maggiormente
 
 % \chapter{Appendix B}
 % It may be necessary to include another appendix to better organize the presentation of supplementary material.
-\printglossary[type=\acronymtype]
 
 % LIST OF FIGURES
 \listoffigures
