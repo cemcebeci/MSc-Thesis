@@ -2,7 +2,7 @@ In this work, we have provided an overview of RL, a novel language conceived to 
 In particular, we have highlighted the language features that boost the potential of automated analysis techniques: actions, subactions and preconditions.
 We have described a method of automatically generating fuzzers using the information available through these language features, and detailed how this method is implemented as part of the RL compiler.
 
-In addition, we have identified two major factors diminishing the performance of game fuzzers: Generating invocations to game actions which are not available in the current game state and 
+In addition, we have identified two major factors diminishing the performance of game fuzzers: generating invocations to game actions which are not available in the current game state and 
     choosing invalid arguments to available game actions.
 We have described a technique to completely avoid generating invocations to unavailable actions.
 Regarding invalid action arguments, we have argued that it is not feasible to design a method that picks arguments satisfying arbitrary constraints in reasonable time.
@@ -10,7 +10,7 @@ Instead, we have introduced a method of analyzing some forms of constraints to m
 
 As a reference for comparison with automatically generated RL fuzzers, we have generated a black-box fuzzer and white-box fuzzer for a selection of three games implemented in OpenSpiel.
 We have artificially introduced bugs in these games for the fuzzers to find.
-In addition, we have implemented the same games in RL and generated four versions of fuzzers for them, differing in whether they include the two key performance improvements.
+Then, we have implemented the same games in RL and generated four versions of fuzzers for them, differing in whether they include the two key performance improvements.
 Measuring the performance of these fuzzers in terms of average fuzzing time and average number of fuzz inputs tested before finding the bug, we were able to demonstrate that the fuzzers generated from the RL descriptions performed better than the black-box OpenSpiel fuzzer.
 They also outperform the white-box OpenSpiel fuzzer for the one benchmark where our constraint analysis technique can model the constraints perfectly, but fall shorter when the constraints are more complex.
 We have also demonstrated that our two key improvements, utilizing the information available in the RL description, result in a significant performance increase in the generated fuzzers.

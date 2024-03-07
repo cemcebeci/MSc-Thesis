@@ -4,54 +4,45 @@ Fuzzing was conceived by Miller \textit{et al.} in 1988 \cite{Miller1999}.
 They applied the method to test the reliability of UNIX utilities, programs that accept a single input consisting of an arbitrary string.
 Over the last thirty years since the conception of fuzzing, it has been utilized in a multitude of fields to discover bugs in programs with more complex interfaces, such as compilers, network protocols and operating system kernels.
 
-Despite its popularity in a wide range of fields, fuzzing is not commonly used in the field of game development.
-One of the major factors in this is that most games developed today are implemented on a game engine that handles their main rendering pipeline, animations and even physics simulations.
-For an engine, it is critically important to be able to produce frames in real time.
-Therefore game engines can not allow the games implemented on them to control the main loop of the program.
-As a result, games today are not implemented as sequential pieces of code with blocking statements.
-Instead, they are implemented as a collection of event handlers.
-The game engine controlling the main loops invokes these handlers to apply the rules of the implemented game.
-Game rules are inevitably implemented in a way tightly coupled with the engine they are implemented on.
-This manifests in two major obstacles for the application of fuzzing.
-First, the application implementing a game consists mostly of game engine code.
-The logic implementing the rules of the game is only a small portion of the final product.
-Fuzzing such a final application introduces tremendous overhead on testing the rules of the game itself.
-Second, the structure in which game rules are defined obscures the actual form of inputs a game's rule accepts.
-As an example, consider an implementation of chess on a game engine.
-The engine's inputs are key strokes and mouse clicks, but the rules of chess define the actions on the game as legal movements of the game pieces.
+Despite its popularity in a wide range of fields, fuzzing is not very practical to apply to input intensive programs, such as games.
+The main reason behind this is that games often have complex input patterns.
+In contrast to the UNIX utilities Miller \textit{et al.} have fuzzed, games do not operate on a single potentially very large input.
+Instead, they evolve with a multitude of actions taken by the players, as well as random events.
+Therefore, a fuzzer for a game needs to interpret the fuzz input, an arbitrary set of bytes, as a sequence of actions on the game.
+To illustrate why this is challenging, let us inspect backgammon as an example.
 
-Furthermore, even if we assume to be able to separate the game logic from the engine it is implemented on, games have complex input patterns.
-For instance, consider backgammon.
-On their turn, a player has to decide whether they want to offer their opponent the doubling cube, the opponent must decide to either accept the cube or concede.
-Then, the player has to roll two six-sided dice, and finally move two pieces.
+In a game of backgammon, on each turn, the player has to decide whether they want to offer their opponent the doubling cube.
+Then, the opponent must decide to either accept the cube or concede.
+After that, the player has to roll two six-sided dice.
+Finally, they have to move two pieces each by the result of one of the dice.
 We can identify at least four different kinds of actions to be taken on a game of backgammon: deciding whether to offer the doubling cube, deciding whether to accept, rolling the dice, using the dice to move pieces.
 The different kinds of actions are not uniform in the input they accept.
-The first two accept boolean inputs, the third one accepts to integers in the range $[1,6]$, and the last one accepts a piece to move.
-Additionally, these actions need to be performed in a certain sequence, which may depend on the inputs.
-For example, if the rolled dice are both 3, the player needs to move four pieces as opposed to two.
+The first two accept boolean inputs, the third one accepts two integers in the range $[1,6]$, and the last one accepts a piece to move.
+These actions need to be performed in a certain order.
+Furthermore, this order can not be statically determined.
+For example, if the rolled dice are both three, the player needs to move four pieces as opposed to two.
 Finally, not all pieces are moveable by an arbitrary amount, the dice the player rolls determine whether or not a particular piece is movable for the turn.
-To summarize, forming valid inputs to games can be a very complex task.
-Games can not be fuzzed simply by feeding them random strings the way Miller \textit{et al.} did for UNIX utilities.
+To summarize, forming valid sequences of action to feed to games can be a very complex task.
 
-For these reasons, we propose utilizing RuleBook (RL) for the task of fuzzing games.
-RL is a novel domain specific language conceived to describe games \cite{RLC}.
-Games described in RL can be compiled into libraries implementing their rules by the RuleBook Compiler (RLC).
-These libraries can be integrated with game engines to produce end-user software.
-In addition, they may be used to run automated analyses on the game rules.
-In particular, RL aims to transform game descriptions to a form amenable to efficient reinforcement learning.
-In RL, a game is described as a sequential piece of code, with special statements that can yield the control flow until a subsequent invocation.
-Through these statements, which are blocking for the game description but not blocking for the program's main loop, RL descriptions of games can specify what kinds of actions can be performed on them, when those actions may be performed and which parameters they may be performed with.
-Analyzing RL descriptions of games enables us to form accurate models for their complex input patterns.
-Furthermore, RLC allows us to feed inputs to the game logic isolated from any game engine.
+On the other hand, invalid sequences of actions do not make interesting test cases, since the game is expected to crash with these inputs.
+Therefore, fuzzers that frequently parse the fuzz input into invalid sequences of actions perform poorly.
+One option to obtain fuzzers that avoid producing invalid action sequences is to write them manually.
+The fuzzer developer can utilize their knowledge about the game, as well as their skill in analyzing the game logic to develop custom parsing procedures for the fuzz input.
+However, this option is both costly and error prone.
+We would much rather have a procedure to automatically generate such fuzzers.
+Such a procedure would need to know about the actions that can be taken on the game, in which game states each of these actions can be taken, and what parameters they can be taken with.
 
-The contribution of this work is as follows:
+Fortunately, the program implementing the game needs to validate the actions players take and display error messages if they are not valid.
+This requires the information about the possible actions, their availability and the constraints on their parameters to be present in the target program.
+Therefore, compiler techniques should be able to extract this information already present in the program to emit high-quality fuzzers that avoid generating invalid action sequences.
+The relevant information is available at compile time in the compiler for RuleBook (RL), a domain specific language designed to describe games and other input intensive simulations \cite{RLC}.
+Motivated by this, the contribution of this work is as follows:
 \begin{enumerate}
     \item We propose a method to automatically generate fuzzers for games described in RL, integrated within the compiler.
-    \item We identify two factors diminishing the performance of game fuzzers: The generation of invocations to unavailable actions and the generation of illegal arguments.
-    \item We describe techniques to mitigate these two factors.
-    \item We generate fuzzers for games implemented in OpenSpiel to form reference for comparison.
-    \item We measure the performance of four versions of fuzzers generated by RLC, as well as two versions of fuzzers for OpenSpiel games.
-    \item We compare the performances of these fuzzers to assess the impact of utilizing information available in RL for fuzzing.
+    \item We identify two factors leading to invalid action sequences: The generation of invocations to unavailable actions and the generation of illegal arguments to available actions. Then, we describe techniques to mitigate these two factors.
+    \item We generate fuzzers for games implemented in OpenSpiel to form a reference for comparison.
+    \item We measure the performance of four versions of fuzzers generated by the RL compiler as well as two versions of fuzzers for OpenSpiel games, varying in how much information about the game they utilize to avoid generating invalid action sequences.
+    \item We compare the performances of these fuzzers to assess the impact of utilizing this information.
 \end{enumerate}
 
 \subsection*{Thesis organization}
