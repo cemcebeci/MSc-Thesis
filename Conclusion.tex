@@ -15,6 +15,7 @@ Measuring the performance of these fuzzers in terms of average fuzzing time and 
 They also outperform the white-box OpenSpiel fuzzer for the one benchmark where our constraint analysis technique can model the constraints perfectly, but fall shorter when the constraints are more complex.
 We have also demonstrated that our two key improvements, utilizing the information available in the RL description, result in a significant performance increase in the generated fuzzers.
 
+\section{Future work}
 Our results suggest that future work in this topic should focus on improving the constraint analysis.
 We have obtained the best results on the benchmark where our technique can describe the constraints on subaction arguments well, and observed the performance plunge when the contrary is true.
 In addition, our technique may be reproduced using a fuzzing engine other than libFuzzer and the results can be compared to discover whether our findings are generalizable across different fuzz input generation methods.

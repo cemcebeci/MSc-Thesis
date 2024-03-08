@@ -2,7 +2,7 @@ In this chapter, we aim to provide an overview of the widely adopted technologie
 
 \section{Compiler technologies}
 \subsection{LLVM}
-LLVM, short for Low Level Virtual Machine, is a compiler framework designed to perform lifelong program analysis and transformation for arbitrary software. \cite{LLVM}
+LLVM is a compiler framework designed to perform lifelong program analysis and transformation for arbitrary software \cite{LLVM}.
 Lifelong analysis and transformation includes link-time techniques for interprocedural analyses, install-time techniques for machine-dependent optimizations and runtime techniques for dynamic analyses.
 LLVM revolves around a common program representation independent from both the source language and the target architecture, called LLVM IR.
 LLVM IR is a RISC-like instruction set enhanced with some high level information to facilitate analyses.
@@ -15,7 +15,7 @@ The most popular example, clang, is an LLVM front-end that compiles C, Objective
 However, clang is far from being the only adopted frontend for LLVM.
 Researchers have developed LLVM frontends for to perform various tasks ranging from compiling languages like Rust \cite{Rust} or Ruby \cite{RubyComp} to creating a JIT compiler for Python \cite{Numba}.
 
-Then, compiler language-independent optimizations, analyses and transformations are performed on LLVM IR \cite{LLVMIRPasses}.
+Then, source language independent optimizations, analyses and transformations are performed on LLVM IR \cite{LLVMIRPasses}.
 These are implemented as independent passes on the IR.
 Examples include analyses such as stack safety analysis and memory dependence analysis, as well as 
 transformations such as dead code elimination, function inlining and duplicate global constant merging.
@@ -49,7 +49,7 @@ IR's developed with MLIR can make use of the MLIR's library of solutions to comm
 
 \subsubsection{Structure of MLIR}
 In MLIR, the unit of semantics is an "Operation", shortly referred to as Ops. Ops can represent various program concepts ranging from a single instruction or a function to a whole file or module.
-An Op has one or more operands, and more or more results. Both operands and results are SSA values.
+An Op has one or more operands, and more or more results. Operands and results are SSA values.
 An Op's operands' definitions need to dominate the Op, and MLIR takes care of validating this constraint.
 In addition, MLIR allows nesting operations via Regions. An Op may have one more more attached Regions, which can contain one or more Blocks.
 Blocks are in turn sequential lists of operations.
@@ -82,7 +82,7 @@ Today, fuzzing is an increasingly popular technique to find software vulnerabili
 Fuzzers can be categorized in terms of how much information they require about the program under test.
 Black-box fuzzers require no information about their target.
 They either generate inputs completely randomly or mutate an initial library of well-known inputs using a set of pre-defined rules.
-On the other hand, white-box fuzzers know everything there is to know about the program under test.
+In contrast, white-box fuzzers know everything there is to know about the program under test.
 One example, DART \cite{Dart}, first feeds random inputs to the program under test, symbolically executes the discovered traces to gather a set of path constraints on them, then uses a solver to generate inputs that are guaranteed to discover new paths.
 In practice, most widely used fuzzers today fall into a category in between these two, gray-box fuzzing.
 They make use of partial information about the program under test.

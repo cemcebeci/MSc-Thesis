@@ -1,7 +1,7 @@
 
-As previously stated (TODO: make sure this is stated previously.), our goal is to implement a method of automatically generating
+As previously stated, our goal is to implement a method of automatically generating
  efficient fuzzers for actions described in RL.
-In this section, we describe how we accomplish that goal.
+In this chapter, we describe how we accomplish that goal.
 We start by describing a simple method to generate black-box fuzzers that uses almost none of the information available in an RL action description.
 Then, we build on this method incrementally, integrating parts of the available information one by one in order to improve performance.
 
@@ -15,7 +15,7 @@ The fuzz target should use the fuzz input it receives to interact with the inter
 
 For the methods described in this section, we model the fuzz target as a function written in pseudo-code that has access to the fuzz input as well
  as the public methods of the fuzzed action.
-In reality, the fuzz target needs to be written in C and the action's interface is written in RL. We will describe how the two are connected in a later section.
+In reality, the fuzz target needs to be written in C and the action's interface is written in RL. We describe how the two are connected in Section \ref{architecture}.
 
 Throughout this section, we will use the following action description to exemplify the methods we discuss:
 \begin{lstlisting}
@@ -54,7 +54,7 @@ A fuzz target for the Nim example would look like the following:
     \caption{Black-box fuzz target for Nim}
     \begin{algorithmic}[1]
     \STATE $game \gets nim()$
-    \STATE $actionIndex \gets pickIntegerValue(fuzzInput, 0, 1)$
+    \STATE $actionIndex \gets pickValue(fuzzInput, 0, 1)$
     \IF{$actionIndex = 0$}
         \STATE $arg0 \gets pickValue(fuzzInput, INT\_MIN, INT\_MAX)$
         \STATE $game.decide\_num\_sticks(arg0)$
@@ -65,7 +65,7 @@ A fuzz target for the Nim example would look like the following:
     \ENDIF
     \end{algorithmic}
 \end{algorithm}
-Where \texttt{pickIntegerValue(byte[] fuzzInput, int min, int max)} is a function that consumes the next $log_2(max - min + 1)$ bits of \texttt{fuzzInput}
+Where \texttt{pickValue(byte[] fuzzInput, int min, int max)} is a function that consumes the next $log_2(max - min + 1)$ bits of \texttt{fuzzInput}
  to produce an integer between \texttt{min} and \texttt{max}.
  \texttt{INT\_MIN}, \texttt{INT\_MAX} represent the bounds of an integer value.
 
@@ -82,7 +82,7 @@ Applied to the Nim example, this method would produce the following fuzz target.
     \begin{algorithmic}[1]
     \STATE $game \gets nim()$
     \WHILE {fuzz input is long enough}
-        \STATE $actionIndex \gets pickIntegerValue(fuzzInput, 0, 1)$
+        \STATE $actionIndex \gets pickValue(fuzzInput, 0, 1)$
         \IF{$actionIndex = 0$}
             \STATE $arg0 \gets pickValue(fuzzInput, INT\_MIN, INT\_MAX)$
             \STATE $game.decide\_num\_sticks(arg0)$
@@ -104,10 +104,10 @@ If a call is expect to cause a crash, we describe the call as illegal.
 When we make an illegal call, the program will crash and the fuzzer will report a bug.
 However, we are not interested in these crashes since they are a result of how the fuzz target interacts with the action, not a result of how the action is described.
 To solve this problem, we need some runtime mechanism to decide the legality of a call.
-We assume such a mechanism to be available for now and describe its implementation in section \ref{decidingLegality}.
+We assume such a mechanism to be available for now and describe its implementation in Section \ref{decidingLegality}.
 Then, the fuzz target we generate should check the legality of all subaction calls it makes, and avoid making illegal calls.
 When it generates an illegal call, the fuzz target can simply continue to the next iteration of the main loop and generate a new call.
-This methods interprets the fuzz input as a sequence of legal action calls.
+This method interprets the fuzz input as a sequence of legal action calls.
 
 For the Nim example, we would obtain the following fuzz target:
 \begin{algorithm}[H]
@@ -115,7 +115,7 @@ For the Nim example, we would obtain the following fuzz target:
     \begin{algorithmic}[1]
     \STATE $game \gets nim()$
     \WHILE {fuzz input is long enough}
-        \STATE $actionIndex \gets pickIntegerValue(fuzzInput, 0, 1)$
+        \STATE $actionIndex \gets pickValue(fuzzInput, 0, 1)$
         \IF{$actionIndex = 0$}
             \STATE $arg0 \gets pickValue(fuzzInput, INT\_MIN, INT\_MAX)$
             \IF {$game.decide\_num\_sticks(arg0)$ is a legal call}
@@ -157,7 +157,7 @@ Here is an example for the Nim game:
         \IF {$pick\_up\_sticks$ is available}
             \STATE $availableSubactions.push(1)$
         \ENDIF
-        \STATE $pickedIndex \gets pickIntegerValue(fuzzInput, 0, len(availableSubactions))$
+        \STATE $pickedIndex \gets pickValue(fuzzInput, 0, len(availableSubactions))$
         \STATE $actionIndex \gets availableSubactions[pickedIndex]$
         \IF{$actionIndex = 0$}
             \STATE $arg0 \gets pickValue(fuzzInput, INT\_MIN, INT\_MAX)$
@@ -176,7 +176,7 @@ Here is an example for the Nim game:
 \end{algorithm}
 
 \subsection{Utilizing preconditions}
-Now that we have made sure we never pick unavailable subactions, the only remaining cause of generated illegal subaction calls is violated preconditions.
+Now that we made sure we never pick unavailable subactions, the only remaining cause of generated illegal subaction calls is violated preconditions.
 Preconditions in RL can be arbitrarily complex. They can include any kind of expression RL supports, including calls to arbitrary functions.
 Therefore, given a set of conditions, finding a set of arguments that satisfy them is not an easy task.
 As a result, we can not guarantee to never pick illegal arguments to a subaction call.
@@ -189,20 +189,20 @@ Furthermore, when picking the argument of \texttt{pick\_up\_sticks}, we can \tex
 The details of constraint types we consider in the scope of this thesis are described in Section \ref{preconditionAnalysis}. 
 
 \section{Implementation}
-In this section, we explain how we implemented the method described in the previous section.
+In this section, we explain how we implement the method described in the previous section.
 We provide an architectural overview, then we detail how we address the challenges we have highlighted.
 
-\subsection{Architectural overview}
+\subsection{Architectural overview} \label{architecture}
 As previously explained, a fuzzer built with libFuzzer needs to expose a fuzz target.
 The fuzz target is a C function that accepts the fuzz input and calls the fuzzed action's functions in some sequence, looking for unexpected behavior.
-The key challenge regarding generating fuzz targets is that they need to have access to both the fuzz input, which is a C byte array; and the action's subaction functions, which are available in RL.
+The key challenge in generating fuzz targets is that they need to have access to both the fuzz input, which is a C byte array; and the action's subaction functions, which are available in RL.
 This requires part of the implementation to be in C or C++, and part of it to be integrated with RLC.
 The generated fuzz target needs to be customized to the number of subactions the action has, their signatures, and their preconditions.
 
 One option is implement the body of the fuzz target in C or C++.
 In this case, we need to express the information related to the fuzzed action as either macros or templates.
 Then, we can extend RLC to emit a C header containing the relevant information.
-Finally, the C++ compiler can perform the necessary macro expansions and template instantiations to arrive at the customized fuzzer.
+Finally, the compiler can perform the necessary macro expansions and template instantiations to arrive at the customized fuzzer.
 We have explored this option extensively and generated fuzzers covering a subset of the features described in the previous section.
 However, we ultimately found it very difficult to read and maintain the fuzz target body written in terms of these macros.
 In addition, designing macro representations for RL concepts to be serializable into a C header without losing descriptive power proved to be challenging.
@@ -279,7 +279,7 @@ Our technique is a best-effort, not a definitive solution.
 We restrict our precondition analysis to integer arguments to subaction functions, as well as struct arguments that are composed solely of integers and other such structs.
 For each integer argument, or integer field of a struct argument of a subaction call, we dynamically decide a minimum and a maximum value.
 Such that any value greater than the maximum or smaller than the minimum certainly invalidates the precondition.
-Then, we pick the argument to be any integer in this range using the $pickValue(fuzzInput, INT\_MIN, INT\_MAX)$ function implemented in C++ introduced previously.
+Then, we pick the argument to be any integer in this range using the $pickValue(fuzzInput, min, max)$ function implemented in C++ introduced previously.
 Although this is far from a perfect model of arbitrary constraints on integers, we have found it to be descriptive enough to significantly boost fuzzing performance.
 
 Let us now describe how we decide the minimum and maximum values dynamically.
@@ -314,7 +314,7 @@ This assumption does not always hold, and that might result in loose minimum and
 Discarding these terms is as far as our best-effort approach can stretch.
 
 At runtime, before evaluating the precondition, we can evaluate whether all conditions of a conjunction $(t_1 \land t_2 \land ...)$ hold.
-If all conditions hold, the constraints of this conjunctions are said to be active.
+If all conditions hold, the constraints of these conjunctions are said to be active.
 Assuming we can decide the minimum and maximum values imposed on \texttt{arg} by a single constraint, we can compute the aggregate minimum and maximum values by intersecting the ranges imposed by the terms of each active conjunction,
 then computing the union of ranges imposed by all active conjunctions.
 We can achieve this by emitting an if statement of the following form for each conjunction:

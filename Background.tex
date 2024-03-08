@@ -102,7 +102,7 @@ The action's frame variables are still accessible through the \texttt{Nim} objec
 \subsection{Preconditions}
 In RL, every function, action and subaction statement can have a list of preconditions attached to it.
 Any expression that evaluates to a boolean value can be a precondition, and preconditions can use the parameters of the function, action or action statement they are associated with.
-Unless optimizations are turned on while compiling, a function call or action instantiation with arguments that violate its target's preconditions results in a crash.
+Unless optimizations are turned on during compilation, a function call or action instantiation with arguments that violate its target's preconditions results in a crash.
 
 Being able to express preconditions is crucial for describing simulations.
 For instance, consider the nim example. The action 
