@@ -135,6 +135,8 @@
 			\begin{minipage}{0.85\textwidth}
 			\color{black}Advisor:\vspace{0.1cm}\\{\bfseries{\advisor}}\vspace{0.25cm}
 			\\
+			\color{black}Co-advisor:\vspace{0.1cm}\\{\bfseries{\coadvisor}}\vspace{0.25cm}
+			\\
 			Academic Year:\vspace{0.1cm}\\{\bfseries{\academicyear}}
 			\end{minipage}
 	\end{titlepage}

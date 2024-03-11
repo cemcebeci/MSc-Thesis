@@ -160,7 +160,7 @@
 \frontmatter % Use roman page numbering style (i, ii, iii, iv...) for the preamble pages
 
 \puttitle{
-	title=Automated generation of efficient fuzzers for games using libFuzzer and RuleBook, % Title of the thesis
+	title=Automatic generation of efficient fuzzers for games using libFuzzer and RuleBook, % Title of the thesis
 	name=Cem Cebeci, % Author Name and Surname
 	course=Computer Science and Engineering \\Ingegneria Informatica, % Study Programme (in Italian)
 	ID  =  10837160,  % Student ID number (numero di matricola)
@@ -195,12 +195,14 @@ In this work, we propose a method to generate fuzzers for games that utilize inf
 We describe a technique to parse an arbitrary sequence of bytes as a sequence of actions on the game, then detail how we minimize the number of invalid actions in the parsed action sequences.
 We implement this technique in the RuleBook language compiler. RuleBook is a DSL for describing games and the RuleBook compiler has the information relevant to our technique available at compile time.
 We measure the performance of four versions of fuzzers generated with this method, varying on how much information about the target game they utilize, along with two versions of fuzzers generated using OpenSpiel's game implementations.
-Using three sample games, we demonstrate that the fuzzers generated from RL descriptions are as performant as their OpenSpiel counterparts.
+Using three sample games, we demonstrate that the fuzzers generated from RL descriptions have comparable performances with their OpenSpiel counterparts.
 Furthermore, we show that between RL fuzzers, versions that make the most use of the information RL exposes perform the best.
 
 % ABSTRACT IN ITALIAN
 \chapter*{Abstract in lingua italiana}
-Il fuzzing è la pratica di richiamare ripetutamente un programma con input semi-casuali.
+Il fuzzing è una tecnica che ha l'obiettivo di scoprire bug e
+vulnerabilità in un dato software, eseguendo tale software
+ripetutamente con input semi-casuali.
 È una tecnica popolare per scoprire bug e vulnerabilità nel software.
 Tuttavia, il fuzzing non è molto pratico se applicato a programmi ad alta intensità di input come i giochi.
 Un fattore importante è che i giochi hanno spesso modelli di input complessi.
@@ -209,10 +211,11 @@ Queste azioni devono essere eseguite secondo regole potenzialmente complesse; un
 Pertanto, anche se un fuzzer conosce tutte le possibili azioni che può compiere su un gioco, generare sequenze di azioni valide può essere un compito difficile.
 Una sequenza di azioni non valida non costituisce un input interessante per il fuzz, poiché ci si aspetta che il gioco fallisca con tale input.
 Di conseguenza, la generazione frequente di sequenze di azioni non valide riduce notevolmente le prestazioni del fuzzer.
-Fortunatamente, le informazioni su quando un'azione può essere eseguita e i vincoli sui suoi parametri dovrebbero essere disponibili nella logica di gioco, poiché il gioco deve convalidare le azioni eseguite dai giocatori e visualizzare messaggi di errore quando vengono eseguite azioni non valide.
-Pertanto, le tecniche di compilazione dovrebbero essere in grado di estrarre e sfruttare queste informazioni già presenti nelle regole del gioco per produrre fuzzer di alta qualità.
+Fortunatamente i prerequisiti necessari all'esecuzione di una azione
+dovrebbero essere già presenti nella logica del gioco, dato che il gioco deve validare le azioni eseguite dai giocatori e visualizzare messaggi di errore quando vengono eseguite azioni non valide.
+Pertanto, tecniche tipiche del campo dei compilatori dovrebbero essere in grado di estrarre e sfruttare queste informazioni già presenti nelle regole del gioco per produrre fuzzer di alta qualità.
 
-In questo lavoro proponiamo un metodo per generare fuzzer per giochi che utilizzano informazioni sulla disponibilità dinamica delle azioni.
+In questo documento proponiamo un metodo per generare fuzzer per giochi che utilizzano informazioni sulla disponibilità delle azioni dinamicamente.
 Descriviamo una tecnica per analizzare una sequenza arbitraria di byte come una sequenza di azioni sul gioco, quindi spieghiamo come minimizzare il numero di azioni non valide nelle sequenze di azioni analizzate.
 Questa tecnica è stata implementata nel compilatore del linguaggio RuleBook. RuleBook è un DSL per la descrizione dei giochi e il compilatore RuleBook ha a disposizione le informazioni rilevanti per la nostra tecnica al momento della compilazione.
 Misuriamo le prestazioni di quattro versioni di fuzzer generati con questo metodo, che variano in base alla quantità di informazioni sul gioco di destinazione che utilizzano, insieme a due versioni di fuzzer generati utilizzando le implementazioni di gioco di OpenSpiel.
